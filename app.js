@@ -229,8 +229,8 @@ function renderInstructions() {
     showScreen('screen-login');
     return;
   }
-  document.getElementById('instr-topic').textContent = `Exam: ${exam.topic}`;
-  document.getElementById('instr-count').textContent = `Total Questions: ${exam.questions.length}`;
+  document.getElementById('instr-topic').textContent = 'Exam: ' + exam.topic;
+  document.getElementById('instr-count').textContent = 'Total Questions: ' + exam.questions.length;
 }
 
 function shuffleArray(arr) {
@@ -278,16 +278,16 @@ function renderQuestion() {
   currentShuffled = shuffleOptions(q);
 
   const qNum = isRetryMode
-    ? `Retry ${currentQIndex + 1} of ${retryQueue.length}`
-    : `Question ${currentQIndex + 1} of ${originalQueue.length}`;
+    ? 'Retry ' + (currentQIndex + 1) + ' of ' + retryQueue.length
+    : 'Question ' + (currentQIndex + 1) + ' of ' + originalQueue.length;
   document.getElementById('exam-q-counter').textContent = qNum;
-  document.getElementById('exam-score-tracker').textContent = `Score: ${correctScore} / ${originalQueue.length}`;
+  document.getElementById('exam-score-tracker').textContent = 'Score: ' + correctScore + ' / ' + originalQueue.length;
   document.getElementById('exam-retry-banner').classList.toggle('hidden', !isRetryMode);
   document.getElementById('exam-question-text').textContent = q.question;
 
   for (let i = 0; i < 4; i++) {
-    const btn = document.getElementById(`opt-${i}`);
-    btn.textContent = `${['A','B','C','D'][i]}. ${currentShuffled.shuffledOpts[i].text}`;
+    const btn = document.getElementById('opt-' + i);
+    btn.textContent = ['A','B','C','D'][i] + '. ' + currentShuffled.shuffledOpts[i].text;
     btn.className   = 'option-btn';
     btn.disabled    = false;
     btn.onclick     = () => handleAnswer(i);
@@ -382,7 +382,7 @@ function handleNext() {
 
 function showRetryTransition() {
   const banner = document.getElementById('exam-retry-banner');
-  banner.textContent = `🔁 You have ${retryQueue.length} question(s) to retry. Answer them correctly to complete. These do NOT affect your score.`;
+  banner.textContent = '🔁 You have ' + retryQueue.length + ' question(s) to retry. Answer them correctly to complete. These do NOT affect your score.';
   banner.classList.remove('hidden');
   setTimeout(() => renderQuestion(), 2500);
 }
@@ -419,37 +419,15 @@ function formatDate(isoString) {
 }
 
 function renderResultScreen(result, pass, total) {
-  document.getElementById('result-header').innerHTML = `
-    <div class="result-icon" style="font-size: 48px;">${pass ? '🎉' : '😞'}</div>
-    <h2>${pass ? 'Congratulations! You Passed!' : 'Exam Complete'}</h2>
-  `;
+  document.getElementById('result-header').innerHTML = '<div class="result-icon" style="font-size: 48px;">' + (pass ? '🎉' : '😞') + '</div><h2>' + (pass ? 'Congratulations! You Passed!' : 'Exam Complete') + '</h2>';
 
-  document.getElementById('result-stats').innerHTML = `
-    <div class="stat-box">
-      <span class="stat-label">Score</span>
-      <span class="stat-value">${result.score} / ${result.total}</span>
-    </div>
-    <div class="stat-box">
-      <span class="stat-label">Percentage</span>
-      <span class="stat-value">${result.percentage}%</span>
-    </div>
-    <div class="stat-box">
-      <span class="stat-label">Status</span>
-      <span class="stat-value badge ${pass ? 'badge-pass' : 'badge-fail'}">${pass ? 'PASS' : 'FAIL'}</span>
-    </div>
-  `;
+  document.getElementById('result-stats').innerHTML = '<div class="stat-box"><span class="stat-label">Score</span><span class="stat-value">' + result.score + ' / ' + result.total + '</span></div><div class="stat-box"><span class="stat-label">Percentage</span><span class="stat-value">' + result.percentage + '%</span></div><div class="stat-box"><span class="stat-label">Status</span><span class="stat-value badge ' + (pass ? 'badge-pass' : 'badge-fail') + '">' + (pass ? 'PASS' : 'FAIL') + '</span></div>';
 
   const tbody = document.getElementById('result-table-body');
   tbody.innerHTML = '';
   result.answers.forEach((ans, i) => {
     const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${i + 1}</td>
-      <td>${ans.question}</td>
-      <td>${ans.chosenText}</td>
-      <td>${ans.correctText}</td>
-      <td>${ans.correct ? '✅' : '❌'}</td>
-    `;
+    tr.innerHTML = '<td>' + (i + 1) + '</td><td>' + ans.question + '</td><td>' + ans.chosenText + '</td><td>' + ans.correctText + '</td><td>' + (ans.correct ? '✅' : '❌') + '</td>';
     tbody.appendChild(tr);
   });
 
@@ -475,17 +453,7 @@ function renderUserHistory() {
   history.slice().reverse().forEach((rec, i) => {
     const row = document.createElement('div');
     row.className = 'history-row';
-    row.innerHTML = `
-      <div class="history-info">
-        <strong>${rec.topic}</strong>
-        <span class="badge ${rec.pass ? 'badge-pass' : 'badge-fail'}">${rec.pass ? 'PASS' : 'FAIL'}</span>
-        <br>
-        <small>Score: ${rec.score}/${rec.total} (${rec.percentage}%) — ${formatDate(rec.date)}</small>
-      </div>
-      <button class="btn btn-sm btn-outline" onclick="showHistoryDetail(${history.length - 1 - i})">
-        View →
-      </button>
-    `;
+    row.innerHTML = '<div class="history-info"><strong>' + rec.topic + '</strong><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span><br><small>Score: ' + rec.score + '/' + rec.total + ' (' + rec.percentage + '%) — ' + formatDate(rec.date) + '</small></div><button class="btn btn-sm btn-outline" onclick="showHistoryDetail(' + (history.length - 1 - i) + ')">View →</button>';
     list.appendChild(row);
   });
 }
@@ -518,12 +486,7 @@ function generateCertificate() {
     date     : formatDate(rec.date)
   };
 
-  document.getElementById('cert-preview').innerHTML = `
-    <h2>🏅 Certificate of Achievement</h2>
-    <p>Awarded to: <strong>${certData.userName}</strong></p>
-    <p>Exam: <strong>${certData.examTopic}</strong></p>
-    <p>Score: ${certData.score} / ${certData.total} &nbsp;|&nbsp; Date: ${certData.date}</p>
-  `;
+  document.getElementById('cert-preview').innerHTML = '<h2>🏅 Certificate of Achievement</h2><p>Awarded to: <strong>' + certData.userName + '</strong></p><p>Exam: <strong>' + certData.examTopic + '</strong></p><p>Score: ' + certData.score + ' / ' + certData.total + ' &nbsp;|&nbsp; Date: ' + certData.date + '</p>';
 }
 
 function downloadCertificate() {
@@ -576,7 +539,7 @@ function downloadCertificate() {
 
   doc.setFontSize(11);
   doc.setTextColor(120, 120, 120);
-  doc.text(`Issued by ${PLATFORM_NAME}`, 148.5, 168, { align: 'center' });
+  doc.text('Issued by ' + PLATFORM_NAME, 148.5, 168, { align: 'center' });
   doc.text('This certificate is system-generated and does not require a physical signature.', 148.5, 176, { align: 'center' });
 
   doc.save('certificate.pdf');
@@ -585,54 +548,15 @@ function downloadCertificate() {
 // Admin Logic
 function renderAdminTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`tab-${tab}-btn`).classList.add('active');
+    document.getElementById('tab-' + tab + '-btn').classList.add('active');
 
     const content = document.getElementById('admin-tab-content');
     content.innerHTML = '';
 
     if (tab === 'upload') {
-        content.innerHTML = `
-        <div class="card">
-          <h3>Upload New Exam</h3>
-
-          <label class="input-label">Exam Topic *</label>
-          <input type="text" id="admin-topic" placeholder="e.g. Road Safety" class="input-field" />
-
-          <label class="input-label">Question Bank (Excel file) *</label>
-          <input type="file" id="admin-file" accept=".xlsx,.xls" class="input-field" />
-
-          <div class="file-hint" style="font-size: 13px; color: #666; margin-bottom: 12px; background: #f9f9f9; padding: 10px; border-radius: 6px;">
-            <strong>Expected columns (row 1 = headers, row 2+ = questions):</strong><br>
-            Col A: Serial | Col B: Question | Col C: Option A (CORRECT) |
-            Col D: Option B | Col E: Option C | Col F: Option D |
-            Col G: Reason A | Col H: Reason B | Col I: Reason C | Col J: Reason D
-          </div>
-
-          <button class="btn btn-primary" onclick="handleExamUpload()">
-            📤 Upload &amp; Generate Link
-          </button>
-
-          <p id="upload-error" class="error-text hidden"></p>
-
-          <div id="upload-result" class="upload-result hidden" style="margin-top: 20px; text-align: center;">
-            <h4 style="color: #2E7D32;">✅ Exam Created!</h4>
-            <p style="margin-top: 10px;">Shareable Link:</p>
-            <div class="link-box" style="justify-content: center;">
-              <span id="exam-link-text"></span>
-              <button class="btn btn-sm btn-outline" onclick="copyExamLink()">Copy</button>
-            </div>
-            <p>QR Code:</p>
-            <div id="exam-qr-code" style="display: flex; justify-content: center; margin-top: 10px;"></div>
-          </div>
-        </div>
-        `;
+        content.innerHTML = '<div class="card"><h3>Upload New Exam</h3><label class="input-label">Exam Topic *</label><input type="text" id="admin-topic" placeholder="e.g. Road Safety" class="input-field" /><label class="input-label">Question Bank (Excel file) *</label><input type="file" id="admin-file" accept=".xlsx,.xls" class="input-field" /><div class="file-hint" style="font-size: 13px; color: #666; margin-bottom: 12px; background: #f9f9f9; padding: 10px; border-radius: 6px;"><strong>Expected columns (row 1 = headers, row 2+ = questions):</strong><br>Col A: Serial | Col B: Question | Col C: Option A (CORRECT) | Col D: Option B | Col E: Option C | Col F: Option D | Col G: Reason A | Col H: Reason B | Col I: Reason C | Col J: Reason D</div><button class="btn btn-primary" onclick="handleExamUpload()">📤 Upload &amp; Generate Link</button><p id="upload-error" class="error-text hidden"></p><div id="upload-result" class="upload-result hidden" style="margin-top: 20px; text-align: center;"><h4 style="color: #2E7D32;">✅ Exam Created!</h4><p style="margin-top: 10px;">Shareable Link:</p><div class="link-box" style="justify-content: center;"><span id="exam-link-text"></span><button class="btn btn-sm btn-outline" onclick="copyExamLink()">Copy</button></div><p>QR Code:</p><div id="exam-qr-code" style="display: flex; justify-content: center; margin-top: 10px;"></div></div></div>';
     } else if (tab === 'exams') {
-        content.innerHTML = `
-        <div class="card">
-          <h3>All Exams</h3>
-          <div id="exams-list"></div>
-        </div>
-        `;
+        content.innerHTML = '<div class="card"><h3>All Exams</h3><div id="exams-list"></div></div>';
         const examsList = document.getElementById('exams-list');
         const exams = getExams();
         const results = getResults();
@@ -651,17 +575,7 @@ function renderAdminTab(tab) {
                 const exam = exams[id];
                 const row = document.createElement('div');
                 row.className = 'history-row';
-                row.innerHTML = `
-                  <div class="history-info">
-                    <strong>${exam.topic}</strong>
-                    <br>
-                    <small>${exam.questions.length} questions | ${examAttempts[id] || 0} attempts | ${formatDate(exam.createdAt)}</small>
-                  </div>
-                  <div style="display: flex; gap: 8px;">
-                      <button class="btn btn-sm btn-outline" onclick="copyExamLinkById('${id}')">Copy Link</button>
-                      <button class="btn btn-sm" style="background: #F44336; color: white;" onclick="deleteExam('${id}')">Delete</button>
-                  </div>
-                `;
+                row.innerHTML = '<div class="history-info"><strong>' + exam.topic + '</strong><br><small>' + exam.questions.length + ' questions | ' + (examAttempts[id] || 0) + ' attempts | ' + formatDate(exam.createdAt) + '</small></div><div style="display: flex; gap: 8px;"><button class="btn btn-sm btn-outline" onclick="copyExamLinkById(\'' + id + '\')">Copy Link</button><button class="btn btn-sm" style="background: #F44336; color: white;" onclick="deleteExam(\'' + id + '\')">Delete</button></div>';
                 examsList.appendChild(row);
             });
         }
@@ -672,38 +586,7 @@ function renderAdminTab(tab) {
             optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
-        content.innerHTML = `
-        <div class="card" style="max-width: 100%;">
-          <h3>User Results</h3>
-
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
-              <div style="flex: 1; min-width: 200px;">
-                  <label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label>
-                  <select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">
-                    ${optionsHtml}
-                  </select>
-              </div>
-              <button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button>
-          </div>
-
-          <div class="table-wrapper">
-            <table class="result-table" id="admin-results-table">
-              <thead>
-                <tr>
-                  <th>User Email</th>
-                  <th>Exam Topic</th>
-                  <th>Score</th>
-                  <th>%</th>
-                  <th>Pass/Fail</th>
-                  <th>Date &amp; Time</th>
-                  <th>Photos</th>
-                </tr>
-              </thead>
-              <tbody id="admin-results-tbody"></tbody>
-            </table>
-          </div>
-        </div>
-        `;
+        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>User Email</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
         renderResultsTable();
     }
 }
@@ -865,15 +748,7 @@ function renderResultsTable() {
             });
 
             const tr = document.createElement('tr');
-            tr.innerHTML = \`
-                <td>\${email}</td>
-                <td>\${rec.topic}</td>
-                <td>\${rec.score} / \${rec.total}</td>
-                <td>\${rec.percentage}%</td>
-                <td><span class="badge \${rec.pass ? 'badge-pass' : 'badge-fail'}">\${rec.pass ? 'PASS' : 'FAIL'}</span></td>
-                <td>\${formatDate(rec.date)}</td>
-                <td>\${photosHtml}</td>
-            \`;
+            tr.innerHTML = '<td>' + email + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
             tbody.appendChild(tr);
         });
     });

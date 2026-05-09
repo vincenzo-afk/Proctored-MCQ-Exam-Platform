@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS public.results (
   date timestamp with time zone DEFAULT now(),
   answers jsonb NOT NULL,
   photos jsonb NOT NULL,
-  user_details jsonb
+  user_details jsonb,
+  tab_switches integer DEFAULT 0
 );
 
 -- 3. Enable Row Level Security (RLS)

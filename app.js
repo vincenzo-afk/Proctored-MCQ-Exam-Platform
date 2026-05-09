@@ -31,6 +31,8 @@ let userAnswers     = [];
 let captureIndices  = [];
 let currentShuffled = null;
 let activeQueue     = [];
+let tabSwitches     = 0;
+let examInProgress  = false;
 
 // Init
 window.onload = async () => {
@@ -79,35 +81,17 @@ async function handleLoginContinue() {
 
   currentUser = { email };
 
-  // Check resume after login
-  if (pendingExamId) {
-      const saved = loadProgress();
-      if (saved && saved.examId === pendingExamId && saved.email === currentUser.email) {
-           const exam = await getExamById(saved.examId);
-           const resume = confirm('You have an unfinished exam: "' + (exam?.topic || 'Unknown') + '". Resume where you left off?');
-            if (resume) {
-              originalQueue   = saved.originalQueue;
-              currentQIndex   = saved.currentQIndex;
-              retryQueue      = saved.retryQueue;
-              correctScore    = saved.correctScore;
-              userAnswers     = saved.userAnswers;
-              photos          = saved.photos;
-              isRetryMode     = saved.isRetryMode;
-              captureIndices  = saved.captureIndices;
-              activeQueue     = isRetryMode ? retryQueue : originalQueue;
-              clearProgress();
-              showScreen('screen-exam');
-              renderQuestion();
-              return;
-            } else {
-              clearProgress();
-            }
-      }
-  }
-
   const examId = getExamIdFromURL();
   if (examId) {
     pendingExamId = examId;
+  }
+
+  // Check resume after login
+  if (await checkForResume()) {
+    return; // Resume handled the flow
+  }
+
+  if (pendingExamId) {
     const exam = await getExamById(examId);
     if (!exam) {
         alert('Exam not found. The link may be invalid or expired.');
@@ -307,6 +291,8 @@ async function startExam() {
   userAnswers   = [];
   photos        = [];
   activeQueue   = originalQueue;
+  tabSwitches   = 0;
+  examInProgress = true;
   captureIndices = pickRandomIndices(originalQueue.length, 3);
   showScreen('screen-exam');
   renderQuestion();
@@ -460,8 +446,10 @@ async function finishExam(details) {
     date      : new Date().toISOString(),
     answers   : userAnswers,
     photos    : [...photos],
-    user_details: details
+    user_details: details,
+    tab_switches: tabSwitches
   };
+  examInProgress = false;
   await saveUserResult(resultRecord);
 
   renderResultScreen(resultRecord, pass, total);
@@ -652,7 +640,7 @@ async function renderAdminTab(tab) {
             optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
-        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>Student Details</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
+        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>Student Details</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Switches</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
         await renderResultsTable();
     }
 }
@@ -813,7 +801,7 @@ async function renderResultsTable() {
             });
 
             const studentDetails = rec.user_details ? ('<strong>' + rec.user_details.name + '</strong><br><small>' + rec.user_details.roll + ' | ' + email + '</small>') : email;
-            tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
+            tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + (rec.tab_switches || 0) + '</td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
             tbody.appendChild(tr);
         });
     });
@@ -830,7 +818,7 @@ function enlargePhoto(src) {
 async function exportResultsCSV() {
   const results = await getResults();
   const filter  = document.getElementById('results-exam-filter').value;
-  const rows    = [['Email', 'Name', 'Phone', 'Roll No', 'Exam Topic', 'Score', 'Total', 'Percentage', 'Pass/Fail', 'Date']];
+  const rows    = [['Email', 'Name', 'Phone', 'Roll No', 'Exam Topic', 'Score', 'Total', 'Percentage', 'Pass/Fail', 'Tab Switches', 'Date']];
 
   Object.entries(results).forEach(([email, attempts]) => {
     attempts.forEach(rec => {
@@ -845,6 +833,7 @@ async function exportResultsCSV() {
         rec.total,
         rec.percentage + '%',
         rec.pass ? 'PASS' : 'FAIL',
+        rec.tab_switches || 0,
         formatDate(rec.date)
       ]);
     });
@@ -881,9 +870,47 @@ window.addEventListener('beforeunload', () => {
 async function checkForResume() {
   const saved = loadProgress();
   if (!saved) return false;
+  if (saved.examId !== getExamIdFromURL()) return false;
+  if (saved.email !== currentUser.email) return false;
+
+  const exam = await getExamById(saved.examId);
+  const resume = confirm('You have an unfinished exam: "' + (exam ? exam.topic : 'Exam') + '". Resume where you left off?');
   
-  const currentExamId = getExamIdFromURL();
-  if (saved.examId !== currentExamId) return false;
-  
-  return true;
+  if (resume) {
+    // Restore all state
+    originalQueue   = saved.originalQueue;
+    currentQIndex   = saved.currentQIndex;
+    retryQueue      = saved.retryQueue;
+    correctScore    = saved.correctScore;
+    userAnswers     = saved.userAnswers;
+    photos          = saved.photos;
+    isRetryMode     = saved.isRetryMode;
+    captureIndices  = saved.captureIndices;
+    activeQueue     = isRetryMode ? retryQueue : originalQueue;
+    pendingExamId   = saved.examId;
+    
+    clearProgress();
+    showScreen('screen-exam');
+    
+    // We need to request camera again since page was reloaded
+    const granted = await requestCamera();
+    if (!granted) {
+      document.getElementById('camera-error').textContent = 'Camera permission is required to resume this exam. Please use a device with a camera.';
+      document.getElementById('camera-error').classList.remove('hidden');
+      showScreen('screen-camera');
+      return true; // We intercepted the flow, but wait on camera screen
+    }
+    
+    renderQuestion();
+    return true;
+  } else {
+    clearProgress();
+    return false;
+  }
 }
+
+window.addEventListener('blur', () => {
+  if (examInProgress) {
+    tabSwitches++;
+  }
+});

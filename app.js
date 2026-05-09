@@ -168,6 +168,11 @@ async function saveUserResult(resultRecord) {
   if (error) alert('Failed to save result to Supabase: ' + error.message);
 }
 
+async function deleteResultFromDB(id) {
+  const { error } = await supabaseClient.from('results').delete().eq('id', id);
+  if (error) alert('Failed to delete result: ' + error.message);
+}
+
 async function getUserHistory(email) {
   const { data, error } = await supabaseClient.from('results').select('*').eq('email', email).order('date', { ascending: false });
   if (error) return [];
@@ -640,7 +645,7 @@ async function renderAdminTab(tab) {
             optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
-        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>Student Details</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Switches</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
+        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>Student Details</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Switches</th><th>Date &amp; Time</th><th>Photos</th><th>Actions</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
         await renderResultsTable();
     }
 }
@@ -801,7 +806,7 @@ async function renderResultsTable() {
             });
 
             const studentDetails = rec.user_details ? ('<strong>' + rec.user_details.name + '</strong><br><small>' + rec.user_details.roll + ' | ' + email + '</small>') : email;
-            tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + (rec.tab_switches || 0) + '</td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
+            tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + (rec.tab_switches || 0) + '</td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td><td><button class="btn btn-sm" style="background: #F44336; color: white; padding: 4px 8px;" onclick="deleteResult(\'' + rec.id + '\')">Del</button></td>';
             tbody.appendChild(tr);
         });
     });
@@ -813,6 +818,13 @@ function enlargePhoto(src) {
   overlay.innerHTML = '<img src="' + src + '" style="max-width:90vw;max-height:90vh;border-radius:8px;">';
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
+}
+
+async function deleteResult(resultId) {
+    if (confirm('Are you sure you want to delete this result?')) {
+        await deleteResultFromDB(resultId);
+        renderResultsTable();
+    }
 }
 
 async function exportResultsCSV() {

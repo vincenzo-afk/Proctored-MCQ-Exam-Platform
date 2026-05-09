@@ -1,0 +1,274 @@
+/* ── Reset ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin    : 0;
+  padding   : 0;
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+body {
+  font-family   : 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background    : #f0f2f5;
+  color         : #1a1a1a;
+  min-height    : 100vh;
+  line-height   : 1.6;
+}
+
+/* ── Utility ────────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Container ──────────────────────────────────────────────────────────── */
+.container {
+  max-width: 680px;
+  margin   : 0 auto;
+  padding  : 16px;
+}
+
+/* ── Card ───────────────────────────────────────────────────────────────── */
+.card {
+  background   : #ffffff;
+  border-radius: 16px;
+  padding      : 28px 24px;
+  box-shadow   : 0 4px 20px rgba(0,0,0,0.08);
+  margin-bottom: 16px;
+}
+.center-card {
+  text-align: center;
+}
+
+/* ── Typography ─────────────────────────────────────────────────────────── */
+h1 { font-size: 26px; margin-bottom: 8px; }
+h2 { font-size: 22px; margin-bottom: 12px; }
+h3 { font-size: 18px; margin-bottom: 10px; }
+.subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+
+/* ── Inputs ─────────────────────────────────────────────────────────────── */
+.input-field {
+  width        : 100%;
+  padding      : 12px 14px;
+  border       : 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size    : 15px;
+  margin-bottom: 12px;
+  outline      : none;
+  transition   : border-color 0.2s;
+}
+.input-field:focus { border-color: #0066CC; }
+.input-label { display: block; font-weight: 600; margin-bottom: 6px; color: #444; }
+
+/* ── Buttons ────────────────────────────────────────────────────────────── */
+.btn {
+  display       : inline-block;
+  padding       : 13px 24px;
+  border        : none;
+  border-radius : 8px;
+  font-size     : 15px;
+  font-weight   : 600;
+  cursor        : pointer;
+  transition    : opacity 0.2s, transform 0.1s;
+  text-align    : center;
+}
+.btn:active { transform: scale(0.97); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary   { background: #0066CC; color: #fff; width: 100%; margin-top: 8px; }
+.btn-success   { background: #2E7D32; color: #fff; width: 100%; margin-top: 8px; }
+.btn-secondary { background: #e0e0e0; color: #333; width: 100%; margin-top: 8px; }
+.btn-outline   { background: transparent; border: 1.5px solid #0066CC; color: #0066CC; }
+.btn-sm        { padding: 8px 16px; font-size: 13px; width: auto; }
+.btn-large     { padding: 16px 24px; font-size: 17px; }
+
+/* ── Option buttons (Exam Screen) ───────────────────────────────────────── */
+.option-btn {
+  background   : #f5f5f5;
+  border       : 2px solid #d0d0d0;
+  color        : #333;
+  width        : 100%;
+  padding      : 14px 16px;
+  margin       : 8px 0;
+  font-size    : 16px;
+  border-radius: 8px;
+  cursor       : pointer;
+  text-align   : left;
+  transition   : background 0.15s, border-color 0.15s;
+  min-height   : 52px; /* WCAG touch target */
+}
+.option-btn:hover:not(:disabled) { background: #e8f0fe; border-color: #0066CC; }
+.option-btn:disabled { cursor: not-allowed; }
+.option-btn.correct      { background: #4CAF50; color: #fff; border-color: #388E3C; font-weight: 700; }
+.option-btn.chosen-wrong { background: #FFC107; color: #333; border-color: #FFA000; font-weight: 700; }
+.option-btn.wrong        { background: #F44336; color: #fff; border-color: #C62828; }
+
+/* ── Exam top bar ───────────────────────────────────────────────────────── */
+.exam-topbar {
+  display        : flex;
+  justify-content: space-between;
+  align-items    : center;
+  background     : #0066CC;
+  color          : #fff;
+  padding        : 10px 16px;
+  font-weight    : 600;
+  font-size      : 14px;
+  position       : sticky;
+  top            : 0;
+  z-index        : 100;
+}
+
+/* ── Question text ──────────────────────────────────────────────────────── */
+.question-text {
+  font-size    : 18px;
+  font-weight  : 700;
+  margin-bottom: 20px;
+  line-height  : 1.5;
+}
+
+/* ── Reason box ─────────────────────────────────────────────────────────── */
+.reason-box {
+  background   : #FFF9C4;
+  border-left  : 4px solid #F9A825;
+  padding      : 12px 16px;
+  border-radius: 0 8px 8px 0;
+  margin       : 12px 0;
+  font-size    : 14px;
+  color        : #555;
+}
+
+/* ── Retry banner ───────────────────────────────────────────────────────── */
+.retry-banner {
+  background   : #E3F2FD;
+  border-left  : 4px solid #1565C0;
+  padding      : 10px 14px;
+  border-radius: 0 8px 8px 0;
+  margin-bottom: 16px;
+  font-size    : 14px;
+  color        : #1565C0;
+  font-weight  : 600;
+}
+
+/* ── Badges ─────────────────────────────────────────────────────────────── */
+.badge {
+  display      : inline-block;
+  padding      : 2px 10px;
+  border-radius: 100px;
+  font-size    : 12px;
+  font-weight  : 700;
+}
+.badge-pass { background: #C8E6C9; color: #1B5E20; }
+.badge-fail { background: #FFCDD2; color: #B71C1C; }
+
+/* ── Result stats ───────────────────────────────────────────────────────── */
+.result-stats {
+  display        : flex;
+  gap            : 12px;
+  margin         : 20px 0;
+  flex-wrap      : wrap;
+  justify-content: center;
+}
+.stat-box {
+  flex         : 1;
+  min-width    : 90px;
+  background   : #f5f5f5;
+  border-radius: 10px;
+  padding      : 14px;
+  text-align   : center;
+}
+.stat-label { display: block; font-size: 12px; color: #777; margin-bottom: 4px; }
+.stat-value { font-size: 22px; font-weight: 800; color: #222; }
+
+/* ── Tables ─────────────────────────────────────────────────────────────── */
+.table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.result-table  { width: 100%; border-collapse: collapse; font-size: 14px; }
+.result-table th {
+  background : #0066CC;
+  color      : #fff;
+  padding    : 10px 8px;
+  text-align : left;
+  white-space: nowrap;
+}
+.result-table td { padding: 9px 8px; border-bottom: 1px solid #eee; vertical-align: top; }
+.result-table tr:hover td { background: #f9f9f9; }
+
+/* ── Admin header & tabs ────────────────────────────────────────────────── */
+.admin-header {
+  display        : flex;
+  justify-content: space-between;
+  align-items    : center;
+  background     : #0066CC;
+  color          : #fff;
+  padding        : 12px 20px;
+}
+.tab-bar {
+  display         : flex;
+  background      : #f0f0f0;
+  border-bottom   : 2px solid #ddd;
+  overflow-x      : auto;
+  -webkit-overflow-scrolling: touch;
+}
+.tab-btn {
+  padding         : 12px 20px;
+  border          : none;
+  background      : transparent;
+  font-size       : 14px;
+  font-weight     : 600;
+  color           : #555;
+  cursor          : pointer;
+  white-space     : nowrap;
+  border-bottom   : 3px solid transparent;
+}
+.tab-btn.active {
+  color        : #0066CC;
+  border-bottom: 3px solid #0066CC;
+  background   : #fff;
+}
+
+/* ── History rows ───────────────────────────────────────────────────────── */
+.history-row {
+  display        : flex;
+  justify-content: space-between;
+  align-items    : center;
+  padding        : 14px 0;
+  border-bottom  : 1px solid #eee;
+  gap            : 12px;
+}
+.history-info { flex: 1; }
+
+/* ── Link box (Admin upload result) ────────────────────────────────────── */
+.link-box {
+  display      : flex;
+  align-items  : center;
+  gap          : 10px;
+  background   : #f5f5f5;
+  padding      : 10px 14px;
+  border-radius: 8px;
+  word-break   : break-all;
+  font-size    : 13px;
+  margin-bottom: 10px;
+}
+
+/* ── Error text ─────────────────────────────────────────────────────────── */
+.error-text { color: #D32F2F; font-size: 13px; margin-top: -8px; margin-bottom: 8px; }
+
+/* ── Responsive overrides ───────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .card          { padding: 16px 14px; border-radius: 12px; }
+  h1             { font-size: 20px; }
+  h2             { font-size: 18px; }
+  .question-text { font-size: 15px; }
+  .option-btn    { font-size: 14px; padding: 12px 12px; }
+  .btn           { font-size: 14px; padding: 12px 18px; }
+  .stat-value    { font-size: 18px; }
+  .result-stats  { gap: 8px; }
+}
+
+/* Full-screen centering for login card */
+#screen-login {
+  min-height     : 100vh;
+  display        : flex;
+  align-items    : center;
+  justify-content: center;
+}
+#screen-camera, #screen-instructions {
+  min-height     : 100vh;
+  display        : flex;
+  align-items    : center;
+  justify-content: center;
+}

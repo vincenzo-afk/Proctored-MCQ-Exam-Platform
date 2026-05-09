@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExamProctor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Screen 1 — Landing / Login Page -->
+  <div id="screen-login" class="screen">
+    <div class="container">
+      <div class="card center-card">
+        <h1 class="logo-title">📋 ExamProctor</h1>
+        <p class="subtitle">Enter your email to continue</p>
+
+        <input type="email" id="input-email" placeholder="your@email.com" class="input-field" />
+        <p id="email-error" class="error-text hidden"></p>
+
+        <div id="admin-pass-block" class="hidden">
+          <input type="password" id="input-admin-pass" placeholder="Admin Password" class="input-field" />
+          <p id="pass-error" class="error-text hidden"></p>
+        </div>
+
+        <button id="btn-continue" class="btn btn-primary" onclick="handleLoginContinue()">
+          Continue →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 2 — Camera Permission Screen -->
+  <div id="screen-camera" class="screen hidden">
+    <div class="container">
+      <div class="card center-card">
+        <div class="icon-large" style="font-size: 48px;">📷</div>
+        <h2>Camera Access Required</h2>
+        <p class="info-text">
+          This exam requires camera access for proctoring.<br><br>
+          <strong>3 random photos</strong> will be captured silently during the exam
+          and submitted with your result for review.<br><br>
+          Your camera will stop after the exam ends.
+        </p>
+        <button class="btn btn-primary" onclick="handleCameraPermission()">
+          Allow Camera &amp; Start Exam
+        </button>
+        <p id="camera-error" class="error-text hidden"></p>
+      </div>
+    </div>
+    <video id="proctor-video" autoplay playsinline muted
+           style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
+    </video>
+  </div>
+
+  <!-- Screen 3 — Exam Instructions Screen -->
+  <div id="screen-instructions" class="screen hidden">
+    <div class="container">
+      <div class="card">
+        <h2 id="instr-topic">Exam Topic</h2>
+        <p id="instr-count" class="question-count">Total Questions: 0</p>
+
+        <div class="rules-box" style="margin: 20px 0;">
+          <h3>📋 Rules &amp; Instructions</h3>
+          <ol class="rules-list" style="padding-left: 20px;">
+            <li>Answer all MCQ questions to complete the exam.</li>
+            <li>If you answer a question incorrectly, it will be <strong>re-queued</strong> at the end.</li>
+            <li>You must answer re-queued questions correctly to finish — but they do <strong>NOT</strong> affect your score.</li>
+            <li>Only your <strong>first-attempt correct answers</strong> count toward your final score.</li>
+            <li>3 random photos will be captured silently during the exam for proctoring.</li>
+            <li>Do <strong>NOT</strong> close or refresh this tab during the exam.</li>
+            <li>Ensure your face is visible in the camera throughout the exam.</li>
+          </ol>
+        </div>
+
+        <button class="btn btn-primary btn-large" onclick="startExam()">
+          🚀 Start Exam
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4 — Exam Screen -->
+  <div id="screen-exam" class="screen hidden">
+    <div class="exam-topbar">
+      <span id="exam-q-counter">Question 1 of 0</span>
+      <span id="exam-score-tracker">Score: 0 / 0</span>
+    </div>
+
+    <div class="container">
+      <div class="card">
+        <p id="exam-retry-banner" class="retry-banner hidden">
+          🔁 Retry Mode — These questions do NOT affect your score.
+        </p>
+        <h3 id="exam-question-text" class="question-text">Question text here</h3>
+
+        <div id="exam-options" class="options-grid">
+          <button class="option-btn" id="opt-0" onclick="handleAnswer(0)"></button>
+          <button class="option-btn" id="opt-1" onclick="handleAnswer(1)"></button>
+          <button class="option-btn" id="opt-2" onclick="handleAnswer(2)"></button>
+          <button class="option-btn" id="opt-3" onclick="handleAnswer(3)"></button>
+        </div>
+
+        <div id="exam-reason-box" class="reason-box hidden">
+          <strong>💡 Explanation:</strong>
+          <p id="exam-reason-text"></p>
+        </div>
+
+        <button id="btn-next" class="btn btn-primary hidden" onclick="handleNext()">
+          Next →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 6 — Result Screen -->
+  <div id="screen-result" class="screen hidden">
+    <div class="container">
+      <div class="card">
+        <div id="result-header" class="result-header" style="text-align: center;"></div>
+        <div id="result-stats" class="result-stats"></div>
+        <h3 class="section-title">Answer Summary</h3>
+        <div class="table-wrapper">
+          <table id="result-table" class="result-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Question</th>
+                <th>Your Answer</th>
+                <th>Correct Answer</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="result-table-body"></tbody>
+          </table>
+        </div>
+        <div class="result-actions" style="margin-top: 20px;">
+          <button id="btn-certificate" class="btn btn-success hidden" onclick="showScreen('screen-certificate'); generateCertificate()">
+            🏅 Download Certificate
+          </button>
+          <button class="btn btn-secondary" onclick="goToHistory()">
+            📂 View History
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 7 — Certificate Screen -->
+  <div id="screen-certificate" class="screen hidden">
+    <div class="container">
+      <div class="card center-card">
+        <div class="cert-preview" id="cert-preview">
+          <h2>🏅 Certificate Ready</h2>
+          <p>Your certificate has been prepared. Click below to download the PDF.</p>
+        </div>
+        <button class="btn btn-success" onclick="downloadCertificate()" style="margin-top: 20px;">
+          ⬇ Download Certificate PDF
+        </button>
+        <button class="btn btn-secondary" onclick="goToHistory()">
+          ← Back to Dashboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 8 — Admin Dashboard -->
+  <div id="screen-admin" class="screen hidden">
+    <div class="admin-header">
+      <h2>🛠 Admin Dashboard</h2>
+      <button class="btn btn-sm btn-outline" style="color: white; border-color: white;" onclick="adminLogout()">Logout</button>
+    </div>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-upload-btn" onclick="renderAdminTab('upload')">📤 Upload Exam</button>
+      <button class="tab-btn" id="tab-exams-btn" onclick="renderAdminTab('exams')">📋 All Exams</button>
+      <button class="tab-btn" id="tab-results-btn" onclick="renderAdminTab('results')">📊 User Results</button>
+    </div>
+
+    <div class="container">
+      <div id="admin-tab-content"></div>
+    </div>
+  </div>
+
+  <!-- Screen 9 — User History Dashboard -->
+  <div id="screen-user-history" class="screen hidden">
+    <div class="container">
+      <div class="card">
+        <div class="history-header" style="display: flex; justify-content: space-between; align-items: center;">
+          <h2>📂 My Exam History</h2>
+          <button class="btn btn-sm btn-outline" onclick="showScreen('screen-login'); currentUser = null;">Logout</button>
+        </div>
+        <p id="history-user-email" class="subtitle"></p>
+
+        <div id="history-list"></div>
+
+        <p id="history-empty" class="empty-state hidden" style="text-align: center; color: #666; margin-top: 20px;">
+          No exams taken yet. Ask your administrator for an exam link.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CDNs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

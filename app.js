@@ -4,6 +4,13 @@ const ADMIN_PASSWORD = 'admin12345';
 const PASS_THRESHOLD = 0.60;
 const PLATFORM_NAME  = 'ExamProctor';
 
+// SUPABASE CONFIGURATION - FILL THESE IN!
+// Get these from your Supabase Dashboard -> Project Settings -> API
+const SUPABASE_URL = 'https://vnwurvdsqiwxtwpixgds.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZud3VydmRzcWl3eHR3cGl4Z2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzUyODYsImV4cCI6MjA5MzkxMTI4Nn0.P39vzzbOfjpENBpdtEkP-bLE-MyIp2OG-ajlEav4opc';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 // Global Variables
 let currentUser = null;
 let isAdmin = false;
@@ -26,8 +33,8 @@ let currentShuffled = null;
 let activeQueue     = [];
 
 // Init
-window.onload = () => {
-  checkForResume();
+window.onload = async () => {
+  await checkForResume();
 };
 
 function getExamIdFromURL() {
@@ -54,7 +61,7 @@ function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-function handleLoginContinue() {
+async function handleLoginContinue() {
   const email = document.getElementById('input-email').value.trim().toLowerCase();
 
   if (!isValidEmail(email)) {
@@ -71,19 +78,45 @@ function handleLoginContinue() {
   }
 
   currentUser = { email };
-  initUserInStorage(email);
+
+  // Check resume after login
+  if (pendingExamId) {
+      const saved = loadProgress();
+      if (saved && saved.examId === pendingExamId && saved.email === currentUser.email) {
+           const exam = await getExamById(saved.examId);
+           const resume = confirm('You have an unfinished exam: "' + (exam?.topic || 'Unknown') + '". Resume where you left off?');
+            if (resume) {
+              originalQueue   = saved.originalQueue;
+              currentQIndex   = saved.currentQIndex;
+              retryQueue      = saved.retryQueue;
+              correctScore    = saved.correctScore;
+              userAnswers     = saved.userAnswers;
+              photos          = saved.photos;
+              isRetryMode     = saved.isRetryMode;
+              captureIndices  = saved.captureIndices;
+              activeQueue     = isRetryMode ? retryQueue : originalQueue;
+              clearProgress();
+              showScreen('screen-exam');
+              renderQuestion();
+              return;
+            } else {
+              clearProgress();
+            }
+      }
+  }
 
   const examId = getExamIdFromURL();
   if (examId) {
     pendingExamId = examId;
-    if (!getExamById(examId)) {
+    const exam = await getExamById(examId);
+    if (!exam) {
         alert('Exam not found. The link may be invalid or expired.');
         return;
     }
     showScreen('screen-camera');
   } else {
     showScreen('screen-user-history');
-    renderUserHistory();
+    await renderUserHistory();
   }
 }
 
@@ -107,50 +140,57 @@ function adminLogout() {
     showScreen('screen-login');
 }
 
-function initUserInStorage(email) {
-  const results = getResults();
-  if (!results[email]) {
-    results[email] = [];
-    saveResults(results);
+// Data Storage Schema (Supabase)
+async function getExams() {
+  const { data, error } = await supabase.from('exams').select('*');
+  if (error) { console.error('Error fetching exams', error); return {}; }
+  const exams = {};
+  data.forEach(e => { exams[e.id] = e; });
+  return exams;
+}
+
+async function getExamById(id) {
+  const { data, error } = await supabase.from('exams').select('*').eq('id', id).single();
+  if (error || !data) return null;
+  return data;
+}
+
+async function saveExam(exam) {
+  const { error } = await supabase.from('exams').insert([exam]);
+  if (error) {
+    alert('Failed to save exam to Supabase: ' + error.message);
+    throw error;
   }
 }
 
-// Data Storage Schema
-function getExams() {
-  return JSON.parse(localStorage.getItem('exams') || '{}');
-}
-function saveExams(exams) {
-  try {
-    localStorage.setItem('exams', JSON.stringify(exams));
-  } catch (e) {
-    if (e.name === 'QuotaExceededError') {
-      alert('Storage is full. Please ask the admin to delete old exams.');
-    }
-  }
-}
-function getExamById(id) {
-  return getExams()[id] || null;
+async function deleteExamFromDB(id) {
+  const { error } = await supabase.from('exams').delete().eq('id', id);
+  if (error) alert('Failed to delete exam: ' + error.message);
 }
 
-function getResults() {
-  return JSON.parse(localStorage.getItem('results') || '{}');
-}
-function saveResults(results) {
-  try {
-    localStorage.setItem('results', JSON.stringify(results));
-  } catch (e) {
-    if (e.name === 'QuotaExceededError') {
-      alert('Storage is full. Old results may need to be cleared by the admin.');
-    }
-  }
-}
-function saveUserResult(email, resultRecord) {
-  const results = getResults();
-  if (!results[email]) results[email] = [];
-  results[email].push(resultRecord);
-  saveResults(results);
+async function getResults() {
+  const { data, error } = await supabase.from('results').select('*').order('date', { ascending: false });
+  if (error) { console.error('Error fetching results', error); return {}; }
+  const results = {};
+  data.forEach(r => {
+    if (!results[r.email]) results[r.email] = [];
+    results[r.email].push(r);
+  });
+  return results;
 }
 
+async function saveUserResult(resultRecord) {
+  const { error } = await supabase.from('results').insert([resultRecord]);
+  if (error) alert('Failed to save result to Supabase: ' + error.message);
+}
+
+async function getUserHistory(email) {
+  const { data, error } = await supabase.from('results').select('*').eq('email', email).order('date', { ascending: false });
+  if (error) return [];
+  return data;
+}
+
+// Progress (local storage still used for mid-exam resume)
 function saveProgress(data) {
   localStorage.setItem('examProgress', JSON.stringify(data));
 }
@@ -182,7 +222,7 @@ async function handleCameraPermission() {
   const granted = await requestCamera();
   if (granted) {
     showScreen('screen-instructions');
-    renderInstructions();
+    await renderInstructions();
   } else {
     document.getElementById('camera-error').textContent =
       'Camera permission is required to take this exam. Please refresh and allow camera access, or contact your administrator.';
@@ -222,8 +262,8 @@ function pickRandomIndices(max, count) {
 }
 
 // Exam Logic
-function renderInstructions() {
-  const exam = getExamById(pendingExamId);
+async function renderInstructions() {
+  const exam = await getExamById(pendingExamId);
   if (!exam) {
     alert('Exam not found. The link may be invalid or expired.');
     showScreen('screen-login');
@@ -258,8 +298,8 @@ function shuffleOptions(question) {
   return { shuffledOpts: opts, newCorrectIndex };
 }
 
-function startExam() {
-  const exam = getExamById(pendingExamId);
+async function startExam() {
+  const exam = await getExamById(pendingExamId);
   originalQueue = shuffleArray(exam.questions.map((q, i) => ({ ...q, originalIndex: i })));
   retryQueue    = [];
   currentQIndex = 0;
@@ -354,13 +394,13 @@ function handleAnswer(chosenIdx) {
   document.getElementById('btn-next').classList.remove('hidden');
 }
 
-function handleNext() {
+async function handleNext() {
   currentQIndex++;
 
   if (!isRetryMode) {
     if (currentQIndex >= originalQueue.length) {
       if (retryQueue.length === 0) {
-        finishExam();
+        await finishExam();
       } else {
         isRetryMode   = true;
         activeQueue   = retryQueue;
@@ -372,7 +412,7 @@ function handleNext() {
     }
   } else {
     if (retryQueue.length === 0) {
-      finishExam();
+      await finishExam();
     } else {
       if (currentQIndex >= retryQueue.length) currentQIndex = 0;
       renderQuestion();
@@ -387,16 +427,17 @@ function showRetryTransition() {
   setTimeout(() => renderQuestion(), 2500);
 }
 
-function finishExam() {
+async function finishExam() {
   stopCamera();
 
-  const exam       = getExamById(pendingExamId);
+  const exam       = await getExamById(pendingExamId);
   const total      = originalQueue.length;
   const percentage = Math.round((correctScore / total) * 100);
   const pass       = (correctScore / total) >= PASS_THRESHOLD;
 
   const resultRecord = {
-    examId    : pendingExamId,
+    exam_id   : pendingExamId,
+    email     : currentUser.email,
     topic     : exam.topic,
     score     : correctScore,
     total,
@@ -406,7 +447,7 @@ function finishExam() {
     answers   : userAnswers,
     photos    : [...photos]
   };
-  saveUserResult(currentUser.email, resultRecord);
+  await saveUserResult(resultRecord);
 
   renderResultScreen(resultRecord, pass, total);
   showScreen('screen-result');
@@ -435,9 +476,8 @@ function renderResultScreen(result, pass, total) {
 }
 
 // User History
-function renderUserHistory() {
-  const results = getResults();
-  const history = results[currentUser.email] || [];
+async function renderUserHistory() {
+  const history = await getUserHistory(currentUser.email);
 
   document.getElementById('history-user-email').textContent = currentUser.email;
 
@@ -450,33 +490,39 @@ function renderUserHistory() {
   }
   document.getElementById('history-empty').classList.add('hidden');
 
-  history.slice().reverse().forEach((rec, i) => {
+  // We are already ordering by date desc from Supabase, no need to reverse
+  history.forEach((rec, i) => {
     const row = document.createElement('div');
     row.className = 'history-row';
-    row.innerHTML = '<div class="history-info"><strong>' + rec.topic + '</strong><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span><br><small>Score: ' + rec.score + '/' + rec.total + ' (' + rec.percentage + '%) — ' + formatDate(rec.date) + '</small></div><button class="btn btn-sm btn-outline" onclick="showHistoryDetail(' + (history.length - 1 - i) + ')">View →</button>';
+    row.innerHTML = '<div class="history-info"><strong>' + rec.topic + '</strong><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span><br><small>Score: ' + rec.score + '/' + rec.total + ' (' + rec.percentage + '%) — ' + formatDate(rec.date) + '</small></div><button class="btn btn-sm btn-outline" onclick="showHistoryDetail(\'' + rec.id + '\')">View →</button>';
     list.appendChild(row);
   });
 }
 
-function showHistoryDetail(index) {
-  const results = getResults();
-  const rec = results[currentUser.email][index];
+async function showHistoryDetail(resultId) {
+  // Fetch specific result
+  const { data: rec, error } = await supabase.from('results').select('*').eq('id', resultId).single();
+  if (error || !rec) {
+      alert("Error loading result details.");
+      return;
+  }
   renderResultScreen(rec, rec.pass, rec.total);
   showScreen('screen-result');
 }
 
-function goToHistory() {
+async function goToHistory() {
     showScreen('screen-user-history');
-    renderUserHistory();
+    await renderUserHistory();
 }
 
 // Certificate
 let certData = {};
 
-function generateCertificate() {
-  const results = getResults();
-  const history = results[currentUser.email];
-  const rec     = history[history.length - 1];
+async function generateCertificate() {
+  // Fetch latest result for current user
+  const history = await getUserHistory(currentUser.email);
+  if (!history || history.length === 0) return;
+  const rec = history[0];
 
   certData = {
     userName : currentUser.email,
@@ -546,7 +592,7 @@ function downloadCertificate() {
 }
 
 // Admin Logic
-function renderAdminTab(tab) {
+async function renderAdminTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.getElementById('tab-' + tab + '-btn').classList.add('active');
 
@@ -556,42 +602,47 @@ function renderAdminTab(tab) {
     if (tab === 'upload') {
         content.innerHTML = '<div class="card"><h3>Upload New Exam</h3><label class="input-label">Exam Topic *</label><input type="text" id="admin-topic" placeholder="e.g. Road Safety" class="input-field" /><label class="input-label">Question Bank (Excel file) *</label><input type="file" id="admin-file" accept=".xlsx,.xls" class="input-field" /><div class="file-hint" style="font-size: 13px; color: #666; margin-bottom: 12px; background: #f9f9f9; padding: 10px; border-radius: 6px;"><strong>Expected columns (row 1 = headers, row 2+ = questions):</strong><br>Col A: Serial | Col B: Question | Col C: Option A (CORRECT) | Col D: Option B | Col E: Option C | Col F: Option D | Col G: Reason A | Col H: Reason B | Col I: Reason C | Col J: Reason D</div><button class="btn btn-primary" onclick="handleExamUpload()">📤 Upload &amp; Generate Link</button><p id="upload-error" class="error-text hidden"></p><div id="upload-result" class="upload-result hidden" style="margin-top: 20px; text-align: center;"><h4 style="color: #2E7D32;">✅ Exam Created!</h4><p style="margin-top: 10px;">Shareable Link:</p><div class="link-box" style="justify-content: center;"><span id="exam-link-text"></span><button class="btn btn-sm btn-outline" onclick="copyExamLink()">Copy</button></div><p>QR Code:</p><div id="exam-qr-code" style="display: flex; justify-content: center; margin-top: 10px;"></div></div></div>';
     } else if (tab === 'exams') {
-        content.innerHTML = '<div class="card"><h3>All Exams</h3><div id="exams-list"></div></div>';
-        const examsList = document.getElementById('exams-list');
-        const exams = getExams();
-        const results = getResults();
+        content.innerHTML = '<div class="card"><h3>All Exams (Loading...)</h3><div id="exams-list"></div></div>';
         
+        const exams = await getExams();
+        const results = await getResults();
+        
+        content.innerHTML = '<div class="card"><h3>All Exams</h3><div id="exams-list"></div></div>';
+        const examsListReal = document.getElementById('exams-list');
+
         let examAttempts = {};
         Object.values(results).forEach(userAttempts => {
             userAttempts.forEach(rec => {
-                examAttempts[rec.examId] = (examAttempts[rec.examId] || 0) + 1;
+                examAttempts[rec.exam_id] = (examAttempts[rec.exam_id] || 0) + 1;
             });
         });
 
         if (Object.keys(exams).length === 0) {
-            examsList.innerHTML = '<p style="color: #666;">No exams found.</p>';
+            examsListReal.innerHTML = '<p style="color: #666;">No exams found.</p>';
         } else {
             Object.keys(exams).forEach(id => {
                 const exam = exams[id];
                 const row = document.createElement('div');
                 row.className = 'history-row';
-                row.innerHTML = '<div class="history-info"><strong>' + exam.topic + '</strong><br><small>' + exam.questions.length + ' questions | ' + (examAttempts[id] || 0) + ' attempts | ' + formatDate(exam.createdAt) + '</small></div><div style="display: flex; gap: 8px;"><button class="btn btn-sm btn-outline" onclick="copyExamLinkById(\'' + id + '\')">Copy Link</button><button class="btn btn-sm" style="background: #F44336; color: white;" onclick="deleteExam(\'' + id + '\')">Delete</button></div>';
-                examsList.appendChild(row);
+                row.innerHTML = '<div class="history-info"><strong>' + exam.topic + '</strong><br><small>' + exam.questions.length + ' questions | ' + (examAttempts[id] || 0) + ' attempts | ' + formatDate(exam.created_at) + '</small></div><div style="display: flex; gap: 8px;"><button class="btn btn-sm btn-outline" onclick="copyExamLinkById(\'' + id + '\')">Copy Link</button><button class="btn btn-sm" style="background: #F44336; color: white;" onclick="deleteExam(\'' + id + '\')">Delete</button></div>';
+                examsListReal.appendChild(row);
             });
         }
     } else if (tab === 'results') {
-        const exams = getExams();
+        content.innerHTML = '<div class="card"><h3>User Results (Loading...)</h3></div>';
+        const exams = await getExams();
+        
         let optionsHtml = '<option value="all">All Exams</option>';
         Object.keys(exams).forEach(id => {
             optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
         content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>User Email</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
-        renderResultsTable();
+        await renderResultsTable();
     }
 }
 
-function handleExamUpload() {
+async function handleExamUpload() {
   const topic    = document.getElementById('admin-topic').value.trim();
   const fileInput = document.getElementById('admin-file');
   const file     = fileInput.files[0];
@@ -608,7 +659,7 @@ function handleExamUpload() {
   hideError('upload-error');
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       const data     = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array' });
@@ -660,13 +711,14 @@ function handleExamUpload() {
       }
 
       const examId  = crypto.randomUUID();
-      const exams   = getExams();
-      exams[examId] = {
+      const examData = {
+        id: examId,
         topic,
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         questions
       };
-      saveExams(exams);
+      
+      await saveExam(examData);
 
       const link = generateExamLink(examId);
       document.getElementById('exam-link-text').textContent = link;
@@ -683,7 +735,7 @@ function handleExamUpload() {
       fileInput.value = '';
 
     } catch (err) {
-      showError('upload-error', 'Failed to parse Excel: ' + err.message);
+      showError('upload-error', 'Failed to parse/upload: ' + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
@@ -723,24 +775,22 @@ function copyExamLinkById(examId) {
         });
 }
 
-function deleteExam(examId) {
+async function deleteExam(examId) {
     if (confirm('Are you sure you want to delete this exam?')) {
-        const exams = getExams();
-        delete exams[examId];
-        saveExams(exams);
+        await deleteExamFromDB(examId);
         renderAdminTab('exams');
     }
 }
 
-function renderResultsTable() {
-    const results = getResults();
+async function renderResultsTable() {
+    const results = await getResults();
     const filter  = document.getElementById('results-exam-filter').value;
     const tbody = document.getElementById('admin-results-tbody');
     tbody.innerHTML = '';
 
     Object.entries(results).forEach(([email, attempts]) => {
         attempts.forEach(rec => {
-            if (filter !== 'all' && rec.examId !== filter) return;
+            if (filter !== 'all' && rec.exam_id !== filter) return;
             
             let photosHtml = '';
             (rec.photos || []).forEach(photo => {
@@ -762,14 +812,14 @@ function enlargePhoto(src) {
   document.body.appendChild(overlay);
 }
 
-function exportResultsCSV() {
-  const results = getResults();
+async function exportResultsCSV() {
+  const results = await getResults();
   const filter  = document.getElementById('results-exam-filter').value;
   const rows    = [['Email', 'Exam Topic', 'Score', 'Total', 'Percentage', 'Pass/Fail', 'Date']];
 
   Object.entries(results).forEach(([email, attempts]) => {
     attempts.forEach(rec => {
-      if (filter !== 'all' && rec.examId !== filter) return;
+      if (filter !== 'all' && rec.exam_id !== filter) return;
       rows.push([
         email,
         rec.topic,
@@ -792,7 +842,6 @@ function exportResultsCSV() {
   URL.revokeObjectURL(url);
 }
 
-// Resume functionality
 window.addEventListener('beforeunload', () => {
   const currentScreenId = document.querySelector('.screen:not(.hidden)').id;
   if (currentScreenId === 'screen-exam' && pendingExamId) {
@@ -811,48 +860,12 @@ window.addEventListener('beforeunload', () => {
   }
 });
 
-function checkForResume() {
+async function checkForResume() {
   const saved = loadProgress();
   if (!saved) return false;
   
   const currentExamId = getExamIdFromURL();
   if (saved.examId !== currentExamId) return false;
   
-  // To restore exactly we need to know the current user, but at this stage they haven't logged in.
-  // Actually, we can check if they log in. I'll modify handleLoginContinue.
-  // We'll return true so we know we have a saved state.
   return true;
-}
-
-// Check for resume inside handleLoginContinue
-const oldHandleLoginContinue = handleLoginContinue;
-handleLoginContinue = function() {
-    oldHandleLoginContinue();
-    
-    // Check resume after login
-    if (currentUser && pendingExamId) {
-        const saved = loadProgress();
-        if (saved && saved.examId === pendingExamId && saved.email === currentUser.email) {
-              const resume = confirm(
-                'You have an unfinished exam: "' + (getExamById(saved.examId)?.topic) + '". Resume where you left off?'
-              );
-              if (resume) {
-                originalQueue   = saved.originalQueue;
-                currentQIndex   = saved.currentQIndex;
-                retryQueue      = saved.retryQueue;
-                correctScore    = saved.correctScore;
-                userAnswers     = saved.userAnswers;
-                photos          = saved.photos;
-                isRetryMode     = saved.isRetryMode;
-                captureIndices  = saved.captureIndices;
-                activeQueue     = isRetryMode ? retryQueue : originalQueue;
-                clearProgress();
-                showScreen('screen-exam');
-                renderQuestion();
-                return;
-              } else {
-                clearProgress();
-              }
-        }
-    }
 }

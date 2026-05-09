@@ -303,7 +303,7 @@ function renderQuestion() {
 
 function handleAnswer(chosenIdx) {
   for (let i = 0; i < 4; i++) {
-    document.getElementById(`opt-${i}`).disabled = true;
+    document.getElementById('opt-' + i).disabled = true;
   }
 
   const correctIdx = currentShuffled.newCorrectIndex;
@@ -311,7 +311,7 @@ function handleAnswer(chosenIdx) {
   const q          = activeQueue[currentQIndex];
 
   for (let i = 0; i < 4; i++) {
-    const btn = document.getElementById(`opt-${i}`);
+    const btn = document.getElementById('opt-' + i);
     btn.classList.remove('correct', 'chosen-wrong', 'wrong');
     if (i === correctIdx) {
       btn.classList.add('correct');
@@ -529,7 +529,7 @@ function downloadCertificate() {
   doc.setFontSize(14);
   doc.setTextColor(60, 60, 60);
   doc.text(
-    `Score: ${certData.score} / ${certData.total}   |   Date: ${certData.date}`,
+    'Score: ' + certData.score + ' / ' + certData.total + '   |   Date: ' + certData.date,
     148.5, 145, { align: 'center' }
   );
 

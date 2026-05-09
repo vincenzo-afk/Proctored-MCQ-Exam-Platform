@@ -742,7 +742,7 @@ function handleExamUpload() {
         const row = rows[i];
 
         if (!row || row.length < 10) {
-          showError('upload-error', \`Row \${i + 1} has fewer than 10 columns. Check Excel format.\`);
+          showError('upload-error', 'Row ' + (i + 1) + ' has fewer than 10 columns. Check Excel format.');
           return;
         }
 

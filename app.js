@@ -758,7 +758,7 @@ function handleExamUpload() {
         const reasonD  = String(row[9] ?? '').trim();
 
         if (!question || !optA || !optB || !optC || !optD) {
-          console.warn(\`Skipping row \${i + 1}: missing required fields.\`);
+          console.warn('Skipping row ' + (i + 1) + ': missing required fields.');
           continue;
         }
 

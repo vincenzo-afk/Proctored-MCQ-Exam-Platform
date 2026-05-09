@@ -806,6 +806,7 @@ async function renderResultsTable() {
             });
 
             const studentDetails = rec.user_details ? ('<strong>' + rec.user_details.name + '</strong><br><small>' + rec.user_details.roll + ' | ' + email + '</small>') : email;
+            const tr = document.createElement('tr');
             tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + (rec.tab_switches || 0) + '</td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td><td><button class="btn btn-sm" style="background: #F44336; color: white; padding: 4px 8px;" onclick="deleteResult(\'' + rec.id + '\')">Del</button></td>';
             tbody.appendChild(tr);
         });

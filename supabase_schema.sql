@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS public.results (
   pass boolean NOT NULL,
   date timestamp with time zone DEFAULT now(),
   answers jsonb NOT NULL,
-  photos jsonb NOT NULL
+  photos jsonb NOT NULL,
+  user_details jsonb
 );
 
 -- 3. Enable Row Level Security (RLS)

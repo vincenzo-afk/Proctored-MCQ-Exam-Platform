@@ -399,7 +399,8 @@ async function handleNext() {
   if (!isRetryMode) {
     if (currentQIndex >= originalQueue.length) {
       if (retryQueue.length === 0) {
-        await finishExam();
+        stopCamera();
+        showScreen('screen-user-details');
       } else {
         isRetryMode   = true;
         activeQueue   = retryQueue;
@@ -411,7 +412,8 @@ async function handleNext() {
     }
   } else {
     if (retryQueue.length === 0) {
-      await finishExam();
+      stopCamera();
+      showScreen('screen-user-details');
     } else {
       if (currentQIndex >= retryQueue.length) currentQIndex = 0;
       renderQuestion();
@@ -426,9 +428,22 @@ function showRetryTransition() {
   setTimeout(() => renderQuestion(), 2500);
 }
 
-async function finishExam() {
-  stopCamera();
+async function submitUserDetails() {
+  const name = document.getElementById('input-detail-name').value.trim();
+  const phone = document.getElementById('input-detail-phone').value.trim();
+  const roll = document.getElementById('input-detail-roll').value.trim();
 
+  if (!name || !phone || !roll) {
+    showError('details-error', 'Please fill in all details.');
+    return;
+  }
+  hideError('details-error');
+
+  const details = { name, phone, roll };
+  await finishExam(details);
+}
+
+async function finishExam(details) {
   const exam       = await getExamById(pendingExamId);
   const total      = originalQueue.length;
   const percentage = Math.round((correctScore / total) * 100);
@@ -444,7 +459,8 @@ async function finishExam() {
     pass,
     date      : new Date().toISOString(),
     answers   : userAnswers,
-    photos    : [...photos]
+    photos    : [...photos],
+    user_details: details
   };
   await saveUserResult(resultRecord);
 
@@ -524,7 +540,7 @@ async function generateCertificate() {
   const rec = history[0];
 
   certData = {
-    userName : currentUser.email,
+    userName : (rec.user_details && rec.user_details.name) ? rec.user_details.name : currentUser.email,
     examTopic: rec.topic,
     score    : rec.score,
     total    : rec.total,
@@ -636,7 +652,7 @@ async function renderAdminTab(tab) {
             optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
-        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>User Email</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
+        content.innerHTML = '<div class="card" style="max-width: 100%;"><h3>User Results</h3><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;"><div style="flex: 1; min-width: 200px;"><label class="input-label" style="display: inline-block; margin-right: 10px;">Filter by Exam:</label><select id="results-exam-filter" onchange="renderResultsTable()" class="input-field" style="width: auto; display: inline-block;">' + optionsHtml + '</select></div><button class="btn btn-sm btn-outline" onclick="exportResultsCSV()">⬇ Export CSV</button></div><div class="table-wrapper"><table class="result-table" id="admin-results-table"><thead><tr><th>Student Details</th><th>Exam Topic</th><th>Score</th><th>%</th><th>Pass/Fail</th><th>Date &amp; Time</th><th>Photos</th></tr></thead><tbody id="admin-results-tbody"></tbody></table></div></div>';
         await renderResultsTable();
     }
 }
@@ -796,8 +812,8 @@ async function renderResultsTable() {
                 photosHtml += '<img src="' + photo + '" width="60" height="45" style="cursor:pointer;border-radius:4px;margin:2px;" onclick="enlargePhoto(\'' + photo + '\')" />';
             });
 
-            const tr = document.createElement('tr');
-            tr.innerHTML = '<td>' + email + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
+            const studentDetails = rec.user_details ? ('<strong>' + rec.user_details.name + '</strong><br><small>' + rec.user_details.roll + ' | ' + email + '</small>') : email;
+            tr.innerHTML = '<td>' + studentDetails + '</td><td>' + rec.topic + '</td><td>' + rec.score + ' / ' + rec.total + '</td><td>' + rec.percentage + '%</td><td><span class="badge ' + (rec.pass ? 'badge-pass' : 'badge-fail') + '">' + (rec.pass ? 'PASS' : 'FAIL') + '</span></td><td>' + formatDate(rec.date) + '</td><td>' + photosHtml + '</td>';
             tbody.appendChild(tr);
         });
     });
@@ -814,13 +830,16 @@ function enlargePhoto(src) {
 async function exportResultsCSV() {
   const results = await getResults();
   const filter  = document.getElementById('results-exam-filter').value;
-  const rows    = [['Email', 'Exam Topic', 'Score', 'Total', 'Percentage', 'Pass/Fail', 'Date']];
+  const rows    = [['Email', 'Name', 'Phone', 'Roll No', 'Exam Topic', 'Score', 'Total', 'Percentage', 'Pass/Fail', 'Date']];
 
   Object.entries(results).forEach(([email, attempts]) => {
     attempts.forEach(rec => {
       if (filter !== 'all' && rec.exam_id !== filter) return;
       rows.push([
         email,
+        rec.user_details ? rec.user_details.name : '',
+        rec.user_details ? rec.user_details.phone : '',
+        rec.user_details ? rec.user_details.roll : '',
         rec.topic,
         rec.score,
         rec.total,

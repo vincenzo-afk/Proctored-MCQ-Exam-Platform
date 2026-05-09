@@ -113,6 +113,31 @@
     </div>
   </div>
 
+  <!-- Screen 5 — User Details Screen -->
+  <div id="screen-user-details" class="screen hidden">
+    <div class="container">
+      <div class="card">
+        <h2 style="text-align: center; color: var(--primary);">Almost Done!</h2>
+        <p style="text-align: center; color: #666; margin-bottom: 20px;">Please provide your details to view your result.</p>
+        
+        <label class="input-label">Full Name *</label>
+        <input type="text" id="input-detail-name" placeholder="E.g. John Doe" class="input-field" />
+
+        <label class="input-label">Phone Number *</label>
+        <input type="text" id="input-detail-phone" placeholder="E.g. +1 234 567 8900" class="input-field" />
+
+        <label class="input-label">Roll No / ID *</label>
+        <input type="text" id="input-detail-roll" placeholder="E.g. ID12345" class="input-field" />
+
+        <p id="details-error" class="error-text hidden"></p>
+
+        <button class="btn btn-primary btn-large" style="margin-top: 15px;" onclick="submitUserDetails()">
+          Submit & View Results
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Screen 6 — Result Screen -->
   <div id="screen-result" class="screen hidden">
     <div class="container">

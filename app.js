@@ -214,7 +214,7 @@ async function requestCamera() {
     return true;
   } catch (err) {
     console.warn('Camera error:', err.name, err.message);
-    return false;
+    return confirm('Camera not found or permission denied. Continue without proctoring for testing purposes?');
   }
 }
 
@@ -225,10 +225,9 @@ async function handleCameraPermission() {
     await renderInstructions();
   } else {
     document.getElementById('camera-error').textContent =
-      'Camera permission is required to take this exam. Please refresh and allow camera access, or contact your administrator.';
+      'Camera permission is required to take this exam. Please use a device with a camera.';
     document.getElementById('camera-error').classList.remove('hidden');
     document.querySelector('#screen-camera .btn-primary').disabled = true;
-    setTimeout(() => { try { window.close(); } catch(e) {} }, 3000);
   }
 }
 

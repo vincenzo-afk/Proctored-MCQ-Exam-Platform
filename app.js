@@ -9,7 +9,7 @@ const PLATFORM_NAME  = 'ExamProctor';
 const SUPABASE_URL = 'https://vnwurvdsqiwxtwpixgds.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZud3VydmRzcWl3eHR3cGl4Z2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzUyODYsImV4cCI6MjA5MzkxMTI4Nn0.P39vzzbOfjpENBpdtEkP-bLE-MyIp2OG-ajlEav4opc';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Global Variables
 let currentUser = null;
@@ -142,7 +142,7 @@ function adminLogout() {
 
 // Data Storage Schema (Supabase)
 async function getExams() {
-  const { data, error } = await supabase.from('exams').select('*');
+  const { data, error } = await supabaseClient.from('exams').select('*');
   if (error) { console.error('Error fetching exams', error); return {}; }
   const exams = {};
   data.forEach(e => { exams[e.id] = e; });
@@ -150,13 +150,13 @@ async function getExams() {
 }
 
 async function getExamById(id) {
-  const { data, error } = await supabase.from('exams').select('*').eq('id', id).single();
+  const { data, error } = await supabaseClient.from('exams').select('*').eq('id', id).single();
   if (error || !data) return null;
   return data;
 }
 
 async function saveExam(exam) {
-  const { error } = await supabase.from('exams').insert([exam]);
+  const { error } = await supabaseClient.from('exams').insert([exam]);
   if (error) {
     alert('Failed to save exam to Supabase: ' + error.message);
     throw error;
@@ -164,12 +164,12 @@ async function saveExam(exam) {
 }
 
 async function deleteExamFromDB(id) {
-  const { error } = await supabase.from('exams').delete().eq('id', id);
+  const { error } = await supabaseClient.from('exams').delete().eq('id', id);
   if (error) alert('Failed to delete exam: ' + error.message);
 }
 
 async function getResults() {
-  const { data, error } = await supabase.from('results').select('*').order('date', { ascending: false });
+  const { data, error } = await supabaseClient.from('results').select('*').order('date', { ascending: false });
   if (error) { console.error('Error fetching results', error); return {}; }
   const results = {};
   data.forEach(r => {
@@ -180,12 +180,12 @@ async function getResults() {
 }
 
 async function saveUserResult(resultRecord) {
-  const { error } = await supabase.from('results').insert([resultRecord]);
+  const { error } = await supabaseClient.from('results').insert([resultRecord]);
   if (error) alert('Failed to save result to Supabase: ' + error.message);
 }
 
 async function getUserHistory(email) {
-  const { data, error } = await supabase.from('results').select('*').eq('email', email).order('date', { ascending: false });
+  const { data, error } = await supabaseClient.from('results').select('*').eq('email', email).order('date', { ascending: false });
   if (error) return [];
   return data;
 }
@@ -501,7 +501,7 @@ async function renderUserHistory() {
 
 async function showHistoryDetail(resultId) {
   // Fetch specific result
-  const { data: rec, error } = await supabase.from('results').select('*').eq('id', resultId).single();
+  const { data: rec, error } = await supabaseClient.from('results').select('*').eq('id', resultId).single();
   if (error || !rec) {
       alert("Error loading result details.");
       return;

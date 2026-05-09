@@ -669,7 +669,7 @@ function renderAdminTab(tab) {
         const exams = getExams();
         let optionsHtml = '<option value="all">All Exams</option>';
         Object.keys(exams).forEach(id => {
-            optionsHtml += `<option value="${id}">${exams[id].topic}</option>`;
+            optionsHtml += '<option value="' + id + '">' + exams[id].topic + '</option>';
         });
 
         content.innerHTML = `
@@ -800,14 +800,14 @@ function handleExamUpload() {
       fileInput.value = '';
 
     } catch (err) {
-      showError('upload-error', \`Failed to parse Excel: \${err.message}\`);
+      showError('upload-error', 'Failed to parse Excel: ' + err.message);
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
 function generateExamLink(examId) {
-  return \`\${window.location.origin}\${window.location.pathname}?exam=\${examId}\`;
+  return window.location.origin + window.location.pathname + '?exam=' + examId;
 }
 
 function copyExamLink() {
@@ -861,7 +861,7 @@ function renderResultsTable() {
             
             let photosHtml = '';
             (rec.photos || []).forEach(photo => {
-                photosHtml += \`<img src="\${photo}" width="60" height="45" style="cursor:pointer;border-radius:4px;margin:2px;" onclick="enlargePhoto('\${photo}')" />\`;
+                photosHtml += '<img src="' + photo + '" width="60" height="45" style="cursor:pointer;border-radius:4px;margin:2px;" onclick="enlargePhoto(\'' + photo + '\')" />';
             });
 
             const tr = document.createElement('tr');
@@ -881,9 +881,8 @@ function renderResultsTable() {
 
 function enlargePhoto(src) {
   const overlay = document.createElement('div');
-  overlay.style.cssText = \`position:fixed;inset:0;background:rgba(0,0,0,0.85);
-    display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer;\`;
-  overlay.innerHTML = \`<img src="\${src}" style="max-width:90vw;max-height:90vh;border-radius:8px;">\`;
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;cursor:pointer;';
+  overlay.innerHTML = '<img src="' + src + '" style="max-width:90vw;max-height:90vh;border-radius:8px;">';
   overlay.onclick = () => overlay.remove();
   document.body.appendChild(overlay);
 }
@@ -901,19 +900,19 @@ function exportResultsCSV() {
         rec.topic,
         rec.score,
         rec.total,
-        \`\${rec.percentage}%\`,
+        rec.percentage + '%',
         rec.pass ? 'PASS' : 'FAIL',
         formatDate(rec.date)
       ]);
     });
   });
 
-  const csv     = rows.map(r => r.map(c => \`"\${c}"\`).join(',')).join('\\n');
+  const csv     = rows.map(r => r.map(c => '"' + c + '"').join(',')).join('\n');
   const blob    = new Blob([csv], { type: 'text/csv' });
   const url     = URL.createObjectURL(blob);
   const a       = document.createElement('a');
   a.href        = url;
-  a.download    = \`results-export-\${Date.now()}.csv\`;
+  a.download    = 'results-export-' + Date.now() + '.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -959,8 +958,8 @@ handleLoginContinue = function() {
     if (currentUser && pendingExamId) {
         const saved = loadProgress();
         if (saved && saved.examId === pendingExamId && saved.email === currentUser.email) {
-             const resume = confirm(
-                \`You have an unfinished exam: "\${getExamById(saved.examId)?.topic}". Resume where you left off?\`
+              const resume = confirm(
+                'You have an unfinished exam: "' + (getExamById(saved.examId)?.topic) + '". Resume where you left off?'
               );
               if (resume) {
                 originalQueue   = saved.originalQueue;

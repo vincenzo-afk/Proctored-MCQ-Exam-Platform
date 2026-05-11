@@ -217,16 +217,36 @@ function renderDashboard() {
   // Render Modules Grid
   const grid = document.getElementById('module-grid');
   grid.innerHTML = '';
+  const multipleModules = globalModules.length > 1; // locking only applies with 2+ modules
   
-  globalModules.forEach(mod => {
+  globalModules.forEach((mod, idx) => {
+    // Determine unlock status by POSITION (index), not by mod.id
+    // First module (idx===0) is always unlocked.
+    // Subsequent modules unlock only when ALL previous modules are completed.
+    let isUnlocked;
+    if (!multipleModules) {
+      // Single module: always accessible, no lock UI
+      isUnlocked = true;
+    } else if (idx === 0) {
+      isUnlocked = true;
+    } else {
+      // Must have completed the module at the previous index
+      const prevMod = globalModules[idx - 1];
+      const prevProg = prog[prevMod.id];
+      isUnlocked = !!(prevProg && prevProg.completed);
+    }
+
+    // Sync the stored progress with computed unlock state
     let p = prog[mod.id];
     if (!p) {
-      p = { unlocked: mod.id === 1, completed: false, score: 0 };
+      p = { unlocked: isUnlocked, completed: false, score: 0 };
       prog[mod.id] = p;
+    } else {
+      p.unlocked = isUnlocked; // always reflect current computed state
     }
 
     const card = document.createElement('div');
-    card.className = 'module-card ' + (p.unlocked ? '' : 'locked');
+    card.className = 'module-card ' + (isUnlocked ? '' : 'locked');
     
     let badge = '', btn = '';
     if (p.completed || p.failedAttempt) {
@@ -237,7 +257,7 @@ function renderDashboard() {
         badge = `<span class="badge badge-fail">❌ Failed (Score: ${p.score || 0}%)</span>`;
         btn = `<button class="btn btn-secondary" style="width:100%; margin-top:auto;" disabled>Attempt Exhausted</button>`;
       }
-    } else if (p.unlocked) {
+    } else if (isUnlocked) {
       badge = `<span class="badge" style="background:var(--accent); color:white;">▶ Ready</span>`;
       btn = `<button class="btn btn-primary" style="width:100%; margin-top:auto;" onclick="startModule(${mod.id})">Start Module</button>`;
     } else {
@@ -262,13 +282,19 @@ function renderDashboard() {
       `;
     }
 
+    // Show lock overlay only when multiple modules exist AND this one is locked
+    const lockOverlay = (!isUnlocked && multipleModules)
+      ? `<div class="lock-overlay"><i class="fa-solid fa-lock" style="font-size:24px; margin-bottom:10px;"></i>Complete previous module to unlock</div>`
+      : '';
+
+    // Title: just use the admin-given title, no "Module N:" prefix
     card.innerHTML = `
-      <h3 style="font-size:18px;">Module ${mod.id}: ${mod.title}</h3>
-      <p style="color:#666; font-size:14px; margin-bottom:15px; flex-grow:1;">${mod.description}</p>
+      <h3 style="font-size:18px;">${mod.title}</h3>
+      <p style="color:#666; font-size:14px; margin-bottom:15px; flex-grow:1;">${mod.description || ''}</p>
       <div>${badge}</div>
       ${btn}
       ${adminInfo}
-      ${!p.unlocked ? `<div class="lock-overlay"><i class="fa-solid fa-lock" style="font-size:24px; margin-bottom:10px;"></i> Complete previous module to unlock</div>` : ''}
+      ${lockOverlay}
     `;
     grid.appendChild(card);
   });
@@ -364,38 +390,51 @@ function createNewModule() {
   
   if (!title) return showToast('Please enter a module title', 'error');
   
+  // Always assign the next sequential ID based on current length
   const newId = globalModules.length > 0 ? Math.max(...globalModules.map(m => m.id)) + 1 : 1;
   
-  globalModules.push({
-    id: newId,
-    title: title,
-    description: desc,
-    questions: []
-  });
-  
+  globalModules.push({ id: newId, title, description: desc, questions: [] });
   localStorage.setItem('globalModules', JSON.stringify(globalModules));
   
   document.getElementById('new-mod-title').value = '';
   document.getElementById('new-mod-desc').value = '';
   
-  showToast(`Module ${newId} created!`, 'success');
+  showToast(`"​${title}" module created!`, 'success');
   renderDashboard();
 }
 
 function deleteModule(modId) {
-  if (!confirm(`Are you sure you want to delete Module ${modId}? This action cannot be undone.`)) return;
+  const mod = globalModules.find(m => m.id === modId);
+  const modTitle = mod ? mod.title : modId;
+  if (!confirm(`Delete "${modTitle}"? This cannot be undone.`)) return;
   
+  // Remove the module
   globalModules = globalModules.filter(m => m.id !== modId);
+  
+  // Re-index all remaining modules to 1, 2, 3... and remap user progress
+  const idMap = {}; // oldId -> newId
+  globalModules.forEach((m, idx) => {
+    idMap[m.id] = idx + 1;
+    m.id = idx + 1;
+  });
   localStorage.setItem('globalModules', JSON.stringify(globalModules));
   
+  // Remap all users' moduleProgress to new IDs and drop the deleted one
   users.forEach(u => {
-    if (u.moduleProgress && u.moduleProgress[modId]) {
-      delete u.moduleProgress[modId];
-    }
+    const oldProg = u.moduleProgress || {};
+    const newProg = {};
+    Object.entries(oldProg).forEach(([oldId, val]) => {
+      const numId = parseInt(oldId);
+      if (numId === modId) return; // drop deleted module's progress
+      if (idMap[numId] !== undefined) {
+        newProg[idMap[numId]] = val;
+      }
+    });
+    u.moduleProgress = newProg;
   });
   saveUsers();
   
-  showToast(`Module ${modId} deleted successfully`, 'success');
+  showToast(`"${modTitle}" deleted.`, 'success');
   renderDashboard();
 }
 
@@ -672,13 +711,15 @@ function finishExam() {
     prog.certDate = new Date().toISOString();
     prog.proctorPhotos = proctorPhotos;
     
-    // Unlock Next Module logic
-    const nextMod = globalModules.find(m => m.id === activeModuleId + 1);
+    // Unlock the NEXT module by array position (not by ID arithmetic)
+    const currentIdx = globalModules.findIndex(m => m.id === activeModuleId);
+    const nextMod = globalModules[currentIdx + 1];
     if (nextMod) {
       if (!user.moduleProgress[nextMod.id]) user.moduleProgress[nextMod.id] = { unlocked: true };
       else user.moduleProgress[nextMod.id].unlocked = true;
     }
-    showToast(`🎉 Module ${activeModuleId} Complete!`, 'success');
+    const mod = globalModules.find(m => m.id === activeModuleId);
+    showToast(`🎉 "${mod ? mod.title : 'Module'}" Complete!`, 'success');
   } else {
     prog.failedAttempt = true;
     prog.score = percentage;
@@ -727,7 +768,8 @@ function viewCertificate(modId) {
   }
   
   document.getElementById('cert-name').textContent = user.fullName.toUpperCase();
-  document.getElementById('cert-module').textContent = `MODULE ${mod.id}: ${mod.title.toUpperCase()}`;
+  // Show just the module title (no "Module N:" prefix)
+  document.getElementById('cert-module').textContent = mod.title.toUpperCase();
   document.getElementById('cert-score').textContent = `${p.score}%`;
   
   const d = new Date(p.certDate);

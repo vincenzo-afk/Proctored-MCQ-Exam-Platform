@@ -11,6 +11,15 @@ let globalModules = JSON.parse(localStorage.getItem('globalModules')) || [
 ];
 let currentUser = JSON.parse(sessionStorage.getItem('currentUser')) || null;
 
+let certConfig = JSON.parse(localStorage.getItem('certConfig')) || {
+  title: "Certificate of Achievement",
+  subtitle: "This is to certify that",
+  completionText: "has successfully completed",
+  scoreText: "with a score of",
+  signatureText: "Authorized Signature",
+  dateText: "Date of Issue"
+};
+
 // Exam State
 let activeModuleId = null;
 let userPhoto = null; // base64
@@ -129,6 +138,16 @@ function renderDashboard() {
   if (currentUser.username === 'admin') {
     document.getElementById('admin-panel').classList.remove('hidden');
     document.getElementById('admin-pass-score').value = PASS_SCORE;
+    
+    if (document.getElementById('cert-admin-title')) {
+      document.getElementById('cert-admin-title').value = certConfig.title;
+      document.getElementById('cert-admin-subtitle').value = certConfig.subtitle;
+      document.getElementById('cert-admin-completion').value = certConfig.completionText;
+      document.getElementById('cert-admin-score').value = certConfig.scoreText;
+      document.getElementById('cert-admin-signature').value = certConfig.signatureText;
+      document.getElementById('cert-admin-date').value = certConfig.dateText;
+    }
+    
     renderAdminUsersTable();
   } else {
     document.getElementById('admin-panel').classList.add('hidden');
@@ -225,6 +244,19 @@ function savePassScore() {
   } else {
     showToast('Enter a valid percentage (0-100)', 'error');
   }
+}
+
+function saveCertConfig() {
+  certConfig = {
+    title: document.getElementById('cert-admin-title').value.trim() || "Certificate of Achievement",
+    subtitle: document.getElementById('cert-admin-subtitle').value.trim() || "This is to certify that",
+    completionText: document.getElementById('cert-admin-completion').value.trim() || "has successfully completed",
+    scoreText: document.getElementById('cert-admin-score').value.trim() || "with a score of",
+    signatureText: document.getElementById('cert-admin-signature').value.trim() || "Authorized Signature",
+    dateText: document.getElementById('cert-admin-date').value.trim() || "Date of Issue"
+  };
+  localStorage.setItem('certConfig', JSON.stringify(certConfig));
+  showToast('Certificate settings saved!', 'success');
 }
 
 function renderAdminUsersTable() {
@@ -593,13 +625,22 @@ function viewCertificate(modId) {
   const p = user.moduleProgress[modId];
   const mod = globalModules.find(m => m.id === modId);
   
+  if (document.getElementById('cert-display-title')) {
+    document.getElementById('cert-display-title').textContent = certConfig.title;
+    document.getElementById('cert-display-subtitle').textContent = certConfig.subtitle;
+    document.getElementById('cert-display-completion').textContent = certConfig.completionText;
+    document.getElementById('cert-display-score').textContent = certConfig.scoreText;
+    document.getElementById('cert-display-signature').textContent = certConfig.signatureText;
+    document.getElementById('cert-display-date-label').textContent = certConfig.dateText;
+  }
+  
   document.getElementById('cert-name').textContent = user.fullName.toUpperCase();
   document.getElementById('cert-module').textContent = `MODULE ${mod.id}: ${mod.title.toUpperCase()}`;
   document.getElementById('cert-score').textContent = `${p.score}%`;
   
   const d = new Date(p.certDate);
   const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  document.getElementById('cert-date').textContent = `Issued on: ${dateStr}`;
+  document.getElementById('cert-date').textContent = dateStr;
   
   showScreen('screen-certificate');
   

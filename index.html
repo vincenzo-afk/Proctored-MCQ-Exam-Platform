@@ -89,6 +89,38 @@
           <button class="btn btn-primary" style="margin-top: 27px; height: 48px;" onclick="createNewModule()">Add Module</button>
         </div>
 
+        <!-- Certificate Customization -->
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">📜 Certificate Customization</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 30px; background: var(--bg); padding: 20px; border-radius: 12px; border: 1px dashed var(--accent);">
+          <div>
+            <label class="input-label">Certificate Title</label>
+            <input type="text" id="cert-admin-title" placeholder="Certificate of Achievement" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div>
+            <label class="input-label">Subtitle</label>
+            <input type="text" id="cert-admin-subtitle" placeholder="This is to certify that" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div>
+            <label class="input-label">Completion Text</label>
+            <input type="text" id="cert-admin-completion" placeholder="has successfully completed" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div>
+            <label class="input-label">Score Text</label>
+            <input type="text" id="cert-admin-score" placeholder="with a score of" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div>
+            <label class="input-label">Signature Label</label>
+            <input type="text" id="cert-admin-signature" placeholder="Authorized Signature" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div>
+            <label class="input-label">Date Label</label>
+            <input type="text" id="cert-admin-date" placeholder="Date of Issue" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div style="grid-column: 1 / -1; display: flex; justify-content: flex-end; margin-top: 10px;">
+            <button class="btn btn-primary" onclick="saveCertConfig()">Save Certificate Details</button>
+          </div>
+        </div>
+
         <h3 style="margin-top: 30px;">Registered Users</h3>
         <div class="table-wrapper">
           <table class="result-table">
@@ -229,17 +261,17 @@
             </div>
             
             <div style="text-align: center; margin-top: -40px;">
-              <h1 style="font-family: 'Playfair Display', serif; font-size: 38px; letter-spacing: 6px; color: #1a1a2e; text-transform: uppercase; margin: 0;">Certificate of Achievement</h1>
+              <h1 id="cert-display-title" style="font-family: 'Playfair Display', serif; font-size: 38px; letter-spacing: 6px; color: #1a1a2e; text-transform: uppercase; margin: 0;">Certificate of Achievement</h1>
               <div style="height: 2px; background: #c9a84c; width: 60%; margin: 20px auto;"></div>
             </div>
             
             <div style="display: flex; justify-content: center; align-items: center; margin-top: 40px;">
               <div style="text-align: center; flex: 1;">
-                <p style="font-style: italic; color: #666; font-size: 16px; margin: 0;">This is to certify that</p>
+                <p id="cert-display-subtitle" style="font-style: italic; color: #666; font-size: 16px; margin: 0;">This is to certify that</p>
                 <h2 id="cert-name" style="font-family: 'Playfair Display', serif; font-size: 42px; color: #c9a84c; border-bottom: 1px solid #c9a84c; display: inline-block; margin: 10px 0; padding-bottom: 5px;">JOHN DOE</h2>
-                <p style="font-style: italic; color: #666; font-size: 16px; margin: 0;">has successfully completed</p>
+                <p id="cert-display-completion" style="font-style: italic; color: #666; font-size: 16px; margin: 0;">has successfully completed</p>
                 <h3 id="cert-module" style="font-size: 24px; color: #1a1a2e; margin: 20px 0;">MODULE 1: BASICS</h3>
-                <p style="color: #666; font-size: 16px; margin: 0;">with a score of</p>
+                <p id="cert-display-score" style="color: #666; font-size: 16px; margin: 0;">with a score of</p>
                 <h3 id="cert-score" style="font-size: 28px; color: #2e7d32; margin: 10px 0;">85%</h3>
                 <p id="cert-date" style="color: #666; font-size: 14px; margin-top: 30px;">Issued on: 12 October 2023</p>
               </div>
@@ -248,7 +280,7 @@
             <div style="position: absolute; bottom: 50px; left: 50px; right: 50px; display: flex; justify-content: space-between; align-items: flex-end;">
               <div style="text-align: center;">
                 <div style="width: 220px; border-bottom: 1px solid #1a1a2e; margin-bottom: 8px;"></div>
-                <p style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Authorized Signature</p>
+                <p id="cert-display-signature" style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Authorized Signature</p>
               </div>
               
               <div>
@@ -261,7 +293,7 @@
               
               <div style="text-align: center;">
                 <div style="width: 220px; border-bottom: 1px solid #1a1a2e; margin-bottom: 8px;"></div>
-                <p style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Date of Issue</p>
+                <p id="cert-display-date-label" style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Date of Issue</p>
               </div>
             </div>
             

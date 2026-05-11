@@ -57,8 +57,11 @@
   <div id="screen-dashboard" class="screen hidden">
     <div class="dash-header">
       <div class="logo">🎓 ExamProctor</div>
-      <div id="dash-welcome" style="font-weight: 500;"></div>
-      <button class="btn btn-outline" style="border-color: rgba(255,255,255,0.4); color: white;" onclick="logout()">Logout</button>
+      <div style="display: flex; gap: 15px; align-items: center;">
+        <div id="dash-welcome" style="font-weight: 500;"></div>
+        <button class="btn btn-sm" onclick="toggleTheme()" style="background: rgba(255,255,255,0.2); color: white;">🌓 Theme</button>
+        <button class="btn btn-outline btn-sm" style="border-color: rgba(255,255,255,0.4); color: white;" onclick="logout()">Logout</button>
+      </div>
     </div>
     
     <div class="container" style="max-width: 1000px; padding-top: 40px;">
@@ -158,13 +161,13 @@
 
         <div class="rules-box" style="margin: 25px 0; background: var(--bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
           <h3>📋 Rules &amp; Instructions</h3>
-          <ol style="padding-left: 20px; line-height: 1.8; color: #555;">
+          <ol style="padding-left: 20px; line-height: 1.8; color: var(--text-muted);">
             <li>Answer all MCQ questions to complete the exam.</li>
             <li>If you answer incorrectly, the question will be <strong>re-queued</strong> at the end.</li>
             <li>You must answer re-queued questions correctly to finish — but they do <strong>NOT</strong> affect your score.</li>
             <li>Only your <strong>first-attempt correct answers</strong> count toward your final score.</li>
             <li>Do <strong>NOT</strong> close or refresh this tab during the exam.</li>
-            <li style="color: var(--error); font-weight: bold;">⚠️ Disclaimer: Your webcam will automatically activate during the exam to capture 3 random proctoring photos.</li>
+            <li style="color: var(--error); font-weight: bold;">⚠️ Disclaimer: Your webcam will automatically activate during the exam to capture 3 random proctoring photos. These photos will be securely sent to our database and automatically deleted after 7 days.</li>
           </ol>
         </div>
 
@@ -304,6 +307,22 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Share Modal -->
+  <div id="modal-share" class="screen hidden" style="background: rgba(0,0,0,0.6); position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 400px; text-align: center; position: relative;">
+      <button class="btn btn-sm" style="position: absolute; top: 10px; right: 10px; background: transparent; color: var(--text);" onclick="document.getElementById('modal-share').classList.add('hidden')">✖</button>
+      <h2>Share Module</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">Scan the QR code or copy the link below to share this exam.</p>
+      
+      <div style="background: white; padding: 20px; display: inline-block; border-radius: 10px; margin-bottom: 20px;">
+        <img id="share-qr" src="" alt="QR Code" style="width: 200px; height: 200px;" />
+      </div>
+      
+      <input type="text" id="share-link" class="input-field" readonly style="text-align: center; margin-bottom: 10px;" />
+      <button class="btn btn-primary" style="width: 100%;" onclick="copyShareLink()">📋 Copy Link</button>
     </div>
   </div>
 

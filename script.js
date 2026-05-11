@@ -42,14 +42,53 @@ if (!users.find(u => u.username === 'admin')) {
   localStorage.setItem('users', JSON.stringify(users));
 }
 
+// Theme Handling
+let isDarkTheme = localStorage.getItem('theme') === 'dark';
+if (isDarkTheme) document.documentElement.setAttribute('data-theme', 'dark');
+
+function toggleTheme() {
+  isDarkTheme = !isDarkTheme;
+  if (isDarkTheme) {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  }
+}
+
 // ── Initialization ──
 window.onload = () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedModule = urlParams.get('module');
+  if (sharedModule) {
+    sessionStorage.setItem('pendingSharedModule', sharedModule);
+  }
+
   if (currentUser) {
     renderDashboard();
+    checkSharedModule();
   } else {
     showScreen('screen-login');
   }
 };
+
+function checkSharedModule() {
+  const modId = sessionStorage.getItem('pendingSharedModule');
+  if (modId) {
+    sessionStorage.removeItem('pendingSharedModule');
+    const mod = globalModules.find(m => m.id === parseInt(modId));
+    if (mod) {
+      const userObj = users.find(u => u.username === currentUser.username);
+      if (!userObj.moduleProgress[modId]) {
+        userObj.moduleProgress[modId] = { unlocked: true };
+        saveUsers();
+        renderDashboard();
+      }
+      showToast(`Shared Module ${modId} ready!`, 'success');
+    }
+  }
+}
 
 function saveUsers() {
   localStorage.setItem('users', JSON.stringify(users));
@@ -93,6 +132,7 @@ function handleLogin() {
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
     showToast('Login successful!', 'success');
     renderDashboard();
+    checkSharedModule();
   } else {
     showToast('❌ Invalid credentials', 'error');
   }
@@ -115,6 +155,7 @@ function handleRegister() {
   sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
   showToast('Account created successfully!', 'success');
   renderDashboard();
+  checkSharedModule();
 }
 
 function logout() {
@@ -191,7 +232,10 @@ function renderDashboard() {
         <div style="margin-top:15px; padding-top:10px; border-top:1px solid var(--border);">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
             <div style="font-size:12px; color:var(--success); font-weight:600;">✅ Loaded (${qCount} Qs)</div>
-            <button class="btn btn-sm btn-outline" style="border-color:var(--error); color:var(--error); padding: 4px 8px; font-size: 12px;" onclick="deleteModule(${mod.id})">🗑 Delete</button>
+            <div>
+              <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; margin-right: 5px;" onclick="shareModule(${mod.id})">🔗 Share</button>
+              <button class="btn btn-sm btn-outline" style="border-color:var(--error); color:var(--error); padding: 4px 8px; font-size: 12px;" onclick="deleteModule(${mod.id})">🗑 Delete</button>
+            </div>
           </div>
           <input type="file" id="admin-file-${mod.id}" accept=".xlsx,.xls" class="input-field" style="padding: 6px; font-size:12px; margin-bottom:0;" onchange="uploadExcelFromCard(${mod.id})" />
         </div>
@@ -333,6 +377,20 @@ function deleteModule(modId) {
   
   showToast(`Module ${modId} deleted successfully`, 'success');
   renderDashboard();
+}
+
+function shareModule(modId) {
+  const shareUrl = window.location.origin + window.location.pathname + '?module=' + modId;
+  document.getElementById('share-link').value = shareUrl;
+  document.getElementById('share-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+  document.getElementById('modal-share').classList.remove('hidden');
+}
+
+function copyShareLink() {
+  const input = document.getElementById('share-link');
+  input.select();
+  document.execCommand('copy');
+  showToast('Link copied to clipboard!', 'success');
 }
 
 // ── Excel Upload Logic (Change 1 & 4) ──

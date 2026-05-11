@@ -380,7 +380,8 @@ function deleteModule(modId) {
 }
 
 function shareModule(modId) {
-  const shareUrl = window.location.origin + window.location.pathname + '?module=' + modId;
+  let baseUrl = window.location.href.split('?')[0];
+  const shareUrl = baseUrl + '?module=' + modId;
   document.getElementById('share-link').value = shareUrl;
   document.getElementById('share-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
   document.getElementById('modal-share').classList.remove('hidden');
@@ -389,8 +390,17 @@ function shareModule(modId) {
 function copyShareLink() {
   const input = document.getElementById('share-link');
   input.select();
-  document.execCommand('copy');
-  showToast('Link copied to clipboard!', 'success');
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(input.value).then(() => {
+      showToast('Link copied to clipboard!', 'success');
+    }).catch(err => {
+      document.execCommand('copy');
+      showToast('Link copied to clipboard!', 'success');
+    });
+  } else {
+    document.execCommand('copy');
+    showToast('Link copied to clipboard!', 'success');
+  }
 }
 
 // ── Excel Upload Logic (Change 1 & 4) ──

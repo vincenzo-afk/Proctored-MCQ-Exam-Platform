@@ -33,7 +33,7 @@
           <input type="text" id="login-user" placeholder="Username" class="input-field" />
           <input type="password" id="login-pass" placeholder="Password" class="input-field" />
           <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Login</button>
-          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+          <p style="margin-top: 20px; font-size: 14px; color: var(--text-muted);">
             Don't have an account? <a href="#" onclick="toggleAuth('register')" style="color: var(--accent); font-weight: 600;">Register</a>
           </p>
         </div>
@@ -45,7 +45,7 @@
           <input type="password" id="reg-pass" placeholder="Password" class="input-field" />
           <input type="password" id="reg-confirm" placeholder="Confirm Password" class="input-field" />
           <button class="btn btn-primary" style="width: 100%;" onclick="handleRegister()">Create Account</button>
-          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+          <p style="margin-top: 20px; font-size: 14px; color: var(--text-muted);">
             Already have an account? <a href="#" onclick="toggleAuth('login')" style="color: var(--accent); font-weight: 600;">Login</a>
           </p>
         </div>
@@ -255,7 +255,7 @@
       </div>
 
       <!-- Certificate Container (Responsive via JS scale) -->
-      <div id="cert-responsive-wrapper" style="width: 100%; overflow: hidden; background: #e2e8f0; padding: 20px; border-radius: 12px; display: flex; justify-content: center;">
+      <div id="cert-responsive-wrapper" style="width: 100%; overflow: hidden; background: var(--bg); padding: 20px; border-radius: 12px; display: flex; justify-content: center;">
         <div id="cert-scale-wrapper" style="width: 1122px; height: 794px; transform-origin: top center;">
           <div id="cert-container">
           <div class="cert-outer-border">

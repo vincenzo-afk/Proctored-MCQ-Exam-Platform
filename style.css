@@ -13,6 +13,12 @@
   --locked-bg: rgba(255,255,255,0.7);
   --input-bg: #fff;
   --hover-bg: #f8fafc;
+  --header-bg: #1a1a2e;
+  --header-text: #ffffff;
+  --badge-pass-bg: #e8f5e9;
+  --badge-fail-bg: #ffebee;
+  --option-hover: #eef2ff;
+  --retry-bg: #eef2ff;
 }
 [data-theme="dark"] {
   --primary: #f8fafc;
@@ -27,6 +33,12 @@
   --locked-bg: rgba(30, 41, 59, 0.8);
   --input-bg: #0f172a;
   --hover-bg: #334155;
+  --header-bg: #1e293b;
+  --header-text: #f1f5f9;
+  --badge-pass-bg: rgba(74, 222, 128, 0.2);
+  --badge-fail-bg: rgba(248, 113, 113, 0.2);
+  --option-hover: #334155;
+  --retry-bg: rgba(99, 102, 241, 0.1);
 }
 
 *, *::before, *::after {
@@ -99,7 +111,7 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary { background: var(--accent); color: white; }
 .btn-success { background: var(--success); color: white; }
-.btn-secondary { background: var(--border); color: var(--primary); }
+.btn-secondary { background: var(--border); color: var(--text); }
 .btn-outline { background: transparent; border: 2px solid var(--accent); color: var(--accent); padding: 10px 22px; }
 .btn-sm { padding: 8px 16px; font-size: 13px; }
 .btn-large { padding: 16px 24px; font-size: 16px; }
@@ -143,8 +155,8 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
 
 /* ── Dashboard Header & Modules ── */
 .dash-header {
-  background: var(--primary);
-  color: white;
+  background: var(--header-bg);
+  color: var(--header-text);
   padding: 16px 30px;
   display: flex;
   justify-content: space-between;
@@ -197,16 +209,16 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
   font-weight: 700;
   margin-bottom: 10px;
 }
-.badge-pass { background: #e8f5e9; color: var(--success); }
-.badge-fail { background: #ffebee; color: var(--error); }
+.badge-pass { background: var(--badge-pass-bg); color: var(--success); }
+.badge-fail { background: var(--badge-fail-bg); color: var(--error); }
 
 /* ── Exam Topbar & Questions ── */
 .exam-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--primary);
-  color: #fff;
+  background: var(--header-bg);
+  color: var(--header-text);
   padding: 15px 24px;
   font-weight: 600;
   font-size: 15px;
@@ -231,7 +243,7 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
   font-family: 'Inter', sans-serif;
   font-weight: 500;
 }
-.option-btn:hover:not(:disabled) { background: #eef2ff; border-color: var(--accent); }
+.option-btn:hover:not(:disabled) { background: var(--option-hover); border-color: var(--accent); }
 .option-btn:disabled { cursor: not-allowed; }
 .option-btn.correct { background: var(--success); color: #fff; border-color: var(--success); font-weight: 700; }
 .option-btn.chosen-wrong { background: #f59e0b; color: #fff; border-color: #f59e0b; font-weight: 700; }
@@ -249,7 +261,7 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
   line-height: 1.6;
 }
 .retry-banner {
-  background: #eef2ff;
+  background: var(--retry-bg);
   border-left: 4px solid var(--accent);
   padding: 15px;
   border-radius: 8px;
@@ -333,4 +345,19 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
     padding: 20px !important; 
     page-break-after: avoid;
   }
+}
+
+/* ── Mobile Optimization ── */
+@media (max-width: 768px) {
+  .dash-header { flex-direction: column; gap: 12px; padding: 15px; }
+  .dash-header > div:last-child { width: 100%; justify-content: space-between; }
+  .module-grid { grid-template-columns: 1fr; gap: 15px; }
+  .card { padding: 20px; }
+  .exam-topbar { flex-direction: column; gap: 10px; text-align: center; padding: 15px; }
+  .result-stats { flex-direction: column; }
+  .cert-actions { flex-direction: column; }
+  .cert-actions .btn { width: 100%; margin-bottom: 10px; }
+  #admin-panel > div[style*="display: flex"] { flex-direction: column; align-items: stretch !important; gap: 10px; }
+  #admin-panel > div[style*="display: grid"] { grid-template-columns: 1fr; }
+  #modal-share .card { width: 90%; }
 }

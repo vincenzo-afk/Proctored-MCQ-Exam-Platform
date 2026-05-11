@@ -3,93 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ExamProctor</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+  <title>ExamProctor Pro</title>
+  
+  <!-- CDNs -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
 
-  <!-- Screen 1 — Landing / Login Page -->
+  <!-- Screen 1: Login & Register -->
   <div id="screen-login" class="screen">
-    <div class="container">
-      <div class="card center-card">
-        <h1 class="logo-title">📋 ExamProctor</h1>
-        <p class="subtitle">Enter your email to continue</p>
+    <div class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div class="card center-card" style="width: 100%; max-width: 420px;">
+        <div style="font-size: 40px; margin-bottom: 10px;">🎓</div>
+        <h1 class="logo-title" style="color: var(--primary);">ExamProctor</h1>
+        <p class="subtitle" id="auth-subtitle">Login to your account</p>
 
-        <input type="email" id="input-email" placeholder="your@email.com" class="input-field" />
-        <p id="email-error" class="error-text hidden"></p>
-
-        <div id="admin-pass-block" class="hidden">
-          <input type="password" id="input-admin-pass" placeholder="Admin Password" class="input-field" />
-          <p id="pass-error" class="error-text hidden"></p>
+        <!-- Login Form -->
+        <div id="form-login">
+          <input type="text" id="login-user" placeholder="Username" class="input-field" />
+          <input type="password" id="login-pass" placeholder="Password" class="input-field" />
+          <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Login</button>
+          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            Don't have an account? <a href="#" onclick="toggleAuth('register')" style="color: var(--accent); font-weight: 600;">Register</a>
+          </p>
         </div>
 
-        <button id="btn-continue" class="btn btn-primary" onclick="handleLoginContinue()">
-          Continue →
-        </button>
+        <!-- Register Form -->
+        <div id="form-register" class="hidden">
+          <input type="text" id="reg-name" placeholder="Full Name" class="input-field" />
+          <input type="text" id="reg-user" placeholder="Username" class="input-field" />
+          <input type="password" id="reg-pass" placeholder="Password" class="input-field" />
+          <input type="password" id="reg-confirm" placeholder="Confirm Password" class="input-field" />
+          <button class="btn btn-primary" style="width: 100%;" onclick="handleRegister()">Create Account</button>
+          <p style="margin-top: 20px; font-size: 14px; color: #666;">
+            Already have an account? <a href="#" onclick="toggleAuth('login')" style="color: var(--accent); font-weight: 600;">Login</a>
+          </p>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Screen 2 — Camera Permission Screen -->
-  <div id="screen-camera" class="screen hidden">
-    <div class="container">
-      <div class="card center-card">
-        <div class="icon-large" style="font-size: 48px;">📷</div>
-        <h2>Camera Access Required</h2>
-        <p class="info-text">
-          This exam requires camera access for proctoring.<br><br>
-          <strong>3 random photos</strong> will be captured silently during the exam
-          and submitted with your result for review.<br><br>
-          Your camera will stop after the exam ends.
-        </p>
-        <button class="btn btn-primary" onclick="handleCameraPermission()">
-          Allow Camera &amp; Start Exam
-        </button>
-        <p id="camera-error" class="error-text hidden"></p>
+  <!-- Screen 2: User Dashboard -->
+  <div id="screen-dashboard" class="screen hidden">
+    <div class="dash-header">
+      <div class="logo">🎓 ExamProctor</div>
+      <div id="dash-welcome" style="font-weight: 500;"></div>
+      <button class="btn btn-outline" style="border-color: rgba(255,255,255,0.4); color: white;" onclick="logout()">Logout</button>
+    </div>
+    
+    <div class="container" style="max-width: 1000px; padding-top: 40px;">
+      
+      <!-- Admin Panel -->
+      <div id="admin-panel" class="hidden card" style="margin-bottom: 40px; border-left: 6px solid var(--accent);">
+        <h2>⚙️ Admin Panel</h2>
+        
+        <div style="display: flex; gap: 20px; align-items: flex-end; margin-bottom: 25px; flex-wrap: wrap;">
+          <div>
+            <label class="input-label">Global Passing Score (%)</label>
+            <input type="number" id="admin-pass-score" class="input-field" style="margin-bottom:0; width: 150px;" />
+          </div>
+          <button class="btn btn-primary" style="margin-bottom:0;" onclick="savePassScore()">Save Settings</button>
+        </div>
+
+        <h3 style="margin-top: 30px;">Registered Users</h3>
+        <div class="table-wrapper">
+          <table class="result-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Progress</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <h2>📚 My Modules</h2>
+      <div class="module-grid" id="module-grid">
+        <!-- Rendered via JS -->
+      </div>
+
+      <h2 style="margin-top: 50px;">📜 My Certificates</h2>
+      <div id="certs-container" class="module-grid">
+        <!-- Rendered via JS -->
       </div>
     </div>
-    <video id="proctor-video" autoplay playsinline muted
-           style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;">
-    </video>
   </div>
 
-  <!-- Screen 3 — Exam Instructions Screen -->
+  <!-- Screen 3: Photo Capture -->
+  <div id="screen-photo" class="screen hidden">
+    <div class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div class="card center-card" style="width: 100%; max-width: 500px;">
+        <h2>📸 Take Your Photo</h2>
+        <p class="subtitle">Your photo will appear on your certificate</p>
+        
+        <div style="width: 100%; aspect-ratio: 4/3; margin: 20px auto; border: 2px solid var(--gold); border-radius: 12px; overflow: hidden; position: relative; background: #eee;">
+          <video id="photo-video" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+          <img id="photo-preview" class="hidden" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: center; margin-bottom: 15px;">
+          <button id="btn-capture" class="btn btn-primary" onclick="capturePhoto()">📷 Capture Photo</button>
+          <button id="btn-retake" class="btn btn-secondary hidden" onclick="retakePhoto()">🔄 Retake</button>
+        </div>
+        
+        <div>
+          <label for="photo-upload" class="btn btn-outline" style="cursor: pointer; display: inline-block;">⬆ Upload Instead</label>
+          <input type="file" id="photo-upload" accept="image/*" class="hidden" onchange="uploadPhoto(event)" />
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 25px 0;">
+        
+        <button id="btn-photo-continue" class="btn btn-success btn-large" style="width: 100%; margin-bottom: 10px;" disabled onclick="continueToQuiz()">➡ Continue to Quiz</button>
+        <button class="btn btn-secondary" style="width: 100%;" onclick="skipPhoto()">Skip (Use Silhouette)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Screen 4: Exam Instructions -->
   <div id="screen-instructions" class="screen hidden">
-    <div class="container">
-      <div class="card">
+    <div class="container" style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
+      <div class="card" style="width: 100%; max-width: 600px;">
         <h2 id="instr-topic">Exam Topic</h2>
-        <p id="instr-count" class="question-count">Total Questions: 0</p>
+        <p id="instr-count" class="badge" style="background: var(--bg); color: var(--accent); font-size: 14px;">Total Questions: 0</p>
 
-        <div class="rules-box" style="margin: 20px 0;">
+        <div class="rules-box" style="margin: 25px 0; background: var(--bg); padding: 20px; border-radius: 12px; border: 1px solid var(--border);">
           <h3>📋 Rules &amp; Instructions</h3>
-          <ol class="rules-list" style="padding-left: 20px;">
+          <ol style="padding-left: 20px; line-height: 1.8; color: #555;">
             <li>Answer all MCQ questions to complete the exam.</li>
-            <li>If you answer a question incorrectly, it will be <strong>re-queued</strong> at the end.</li>
+            <li>If you answer incorrectly, the question will be <strong>re-queued</strong> at the end.</li>
             <li>You must answer re-queued questions correctly to finish — but they do <strong>NOT</strong> affect your score.</li>
             <li>Only your <strong>first-attempt correct answers</strong> count toward your final score.</li>
-            <li>3 random photos will be captured silently during the exam for proctoring.</li>
             <li>Do <strong>NOT</strong> close or refresh this tab during the exam.</li>
-            <li>Ensure your face is visible in the camera throughout the exam.</li>
           </ol>
         </div>
 
-        <button class="btn btn-primary btn-large" onclick="startExam()">
+        <button class="btn btn-primary btn-large" style="width: 100%;" onclick="startQuiz()">
           🚀 Start Exam
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Screen 4 — Exam Screen -->
+  <!-- Screen 5: Exam Screen -->
   <div id="screen-exam" class="screen hidden">
     <div class="exam-topbar">
       <span id="exam-q-counter">Question 1 of 0</span>
       <span id="exam-score-tracker">Score: 0 / 0</span>
     </div>
 
-    <div class="container">
-      <div class="card">
+    <div class="container" style="padding-top: 30px;">
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
         <p id="exam-retry-banner" class="retry-banner hidden">
           🔁 Retry Mode — These questions do NOT affect your score.
         </p>
@@ -104,50 +178,26 @@
 
         <div id="exam-reason-box" class="reason-box hidden">
           <strong>💡 Explanation:</strong>
-          <p id="exam-reason-text"></p>
+          <p id="exam-reason-text" style="margin-top: 5px;"></p>
         </div>
 
-        <button id="btn-next" class="btn btn-primary hidden" onclick="handleNext()">
-          Next →
+        <button id="btn-next" class="btn btn-primary hidden" style="margin-top: 20px; font-size: 16px;" onclick="handleNext()">
+          Next Question →
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Screen 5 — User Details Screen -->
-  <div id="screen-user-details" class="screen hidden">
-    <div class="container">
-      <div class="card">
-        <h2 style="text-align: center; color: var(--primary);">Almost Done!</h2>
-        <p style="text-align: center; color: #666; margin-bottom: 20px;">Please provide your details to view your result.</p>
-        
-        <label class="input-label">Full Name *</label>
-        <input type="text" id="input-detail-name" placeholder="E.g. John Doe" class="input-field" />
-
-        <label class="input-label">Phone Number *</label>
-        <input type="text" id="input-detail-phone" placeholder="E.g. +1 234 567 8900" class="input-field" />
-
-        <label class="input-label">Roll No / ID *</label>
-        <input type="text" id="input-detail-roll" placeholder="E.g. ID12345" class="input-field" />
-
-        <p id="details-error" class="error-text hidden"></p>
-
-        <button class="btn btn-primary btn-large" style="margin-top: 15px;" onclick="submitUserDetails()">
-          Submit & View Results
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Screen 6 — Result Screen -->
+  <!-- Screen 6: Result Screen -->
   <div id="screen-result" class="screen hidden">
-    <div class="container">
-      <div class="card">
-        <div id="result-header" class="result-header" style="text-align: center;"></div>
+    <div class="container" style="padding-top: 40px;">
+      <div class="card center-card" style="max-width: 800px; margin: 0 auto;">
+        <div id="result-header" style="margin-bottom: 20px;"></div>
         <div id="result-stats" class="result-stats"></div>
-        <h3 class="section-title">Answer Summary</h3>
-        <div class="table-wrapper">
-          <table id="result-table" class="result-table">
+        
+        <h3 style="margin-top: 40px; text-align: left; border-bottom: 2px solid var(--border); padding-bottom: 10px;">Answer Summary</h3>
+        <div class="table-wrapper" style="margin-top: 20px;">
+          <table class="result-table">
             <thead>
               <tr>
                 <th>#</th>
@@ -160,79 +210,85 @@
             <tbody id="result-table-body"></tbody>
           </table>
         </div>
-        <div class="result-actions" style="margin-top: 20px;">
-          <button id="btn-certificate" class="btn btn-success hidden" onclick="showScreen('screen-certificate'); generateCertificate()">
-            🏅 Download Certificate
-          </button>
-          <button class="btn btn-secondary" onclick="goToHistory()">
-            📂 View History
+        
+        <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
+          <button class="btn btn-secondary btn-large" onclick="renderDashboard()">
+            ← Back to Dashboard
           </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Screen 7 — Certificate Screen -->
+  <!-- Screen 7: Certificate Screen -->
   <div id="screen-certificate" class="screen hidden">
-    <div class="container">
-      <div class="card center-card">
-        <div class="cert-preview" id="cert-preview">
-          <h2>🏅 Certificate Ready</h2>
-          <p>Your certificate has been prepared. Click below to download the PDF.</p>
+    <div class="container" style="max-width: 1200px; padding-top: 20px;">
+      
+      <div class="cert-actions" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;">
+        <button class="btn btn-secondary" onclick="renderDashboard()">← Back</button>
+        <button class="btn btn-primary" onclick="printCertificate()">🖨 Print Certificate</button>
+        <button id="btn-download-png" class="btn btn-success" onclick="downloadPNG()">📥 Download PNG</button>
+      </div>
+
+      <!-- Certificate Container (Fixed aspect ratio for high quality render) -->
+      <div style="overflow-x: auto; display: flex; justify-content: center; background: #e2e8f0; padding: 20px; border-radius: 12px;">
+        <div id="cert-container">
+          <div class="cert-outer-border">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <img id="cert-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c9a84c'><path d='M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z'/></svg>" style="width:80px; height:80px; border-radius:50%;" />
+            </div>
+            
+            <div style="text-align: center; margin-top: -40px;">
+              <h1 style="font-family: 'Playfair Display', serif; font-size: 38px; letter-spacing: 6px; color: #1a1a2e; text-transform: uppercase; margin: 0;">Certificate of Achievement</h1>
+              <div style="height: 2px; background: #c9a84c; width: 60%; margin: 20px auto;"></div>
+            </div>
+            
+            <div style="display: flex; justify-content: center; align-items: center; margin-top: 40px; gap: 50px;">
+              <div style="text-align: center; flex: 1;">
+                <p style="font-style: italic; color: #666; font-size: 16px; margin: 0;">This is to certify that</p>
+                <h2 id="cert-name" style="font-family: 'Playfair Display', serif; font-size: 42px; color: #c9a84c; border-bottom: 1px solid #c9a84c; display: inline-block; margin: 10px 0; padding-bottom: 5px;">JOHN DOE</h2>
+                <p style="font-style: italic; color: #666; font-size: 16px; margin: 0;">has successfully completed</p>
+                <h3 id="cert-module" style="font-size: 24px; color: #1a1a2e; margin: 20px 0;">MODULE 1: BASICS</h3>
+                <p style="color: #666; font-size: 16px; margin: 0;">with a score of</p>
+                <h3 id="cert-score" style="font-size: 28px; color: #2e7d32; margin: 10px 0;">85%</h3>
+                <p id="cert-date" style="color: #666; font-size: 14px; margin-top: 30px;">Issued on: 12 October 2023</p>
+              </div>
+              
+              <div style="margin-right: 40px;">
+                <img id="cert-user-photo" src="" style="width:140px; height:140px; border-radius:50%; border: 3px solid #c9a84c; box-shadow: 0 4px 15px rgba(0,0,0,0.2); object-fit: cover;" />
+              </div>
+            </div>
+            
+            <div style="position: absolute; bottom: 50px; left: 50px; right: 50px; display: flex; justify-content: space-between; align-items: flex-end;">
+              <div style="text-align: center;">
+                <div style="width: 220px; border-bottom: 1px solid #1a1a2e; margin-bottom: 8px;"></div>
+                <p style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Authorized Signature</p>
+              </div>
+              
+              <div>
+                <svg width="100" height="100" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="45" fill="#c9a84c" />
+                  <circle cx="50" cy="50" r="38" fill="#fdfcf7" stroke="#c9a84c" stroke-width="2"/>
+                  <path d="M50 25 L55 40 L70 40 L58 50 L62 65 L50 55 L38 65 L42 50 L30 40 L45 40 Z" fill="#c9a84c" />
+                </svg>
+              </div>
+              
+              <div style="text-align: center;">
+                <div style="width: 220px; border-bottom: 1px solid #1a1a2e; margin-bottom: 8px;"></div>
+                <p style="font-style: italic; color: #666; font-size: 14px; margin: 0;">Date of Issue</p>
+              </div>
+            </div>
+            
+            <div style="position: absolute; bottom: 15px; width: 100%; left: 0; text-align: center;">
+              <div style="height: 1px; background: #c9a84c; width: 85%; margin: 0 auto 5px auto;"></div>
+              <p style="font-size: 11px; color: #999; margin: 0;">This certificate is computer generated</p>
+            </div>
+          </div>
         </div>
-        <button class="btn btn-success" onclick="downloadCertificate()" style="margin-top: 20px;">
-          ⬇ Download Certificate PDF
-        </button>
-        <button class="btn btn-secondary" onclick="goToHistory()">
-          ← Back to Dashboard
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- Screen 8 — Admin Dashboard -->
-  <div id="screen-admin" class="screen hidden">
-    <div class="admin-header">
-      <h2>🛠 Admin Dashboard</h2>
-      <button class="btn btn-sm btn-outline" style="color: white; border-color: white;" onclick="adminLogout()">Logout</button>
-    </div>
-
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab-upload-btn" onclick="renderAdminTab('upload')">📤 Upload Exam</button>
-      <button class="tab-btn" id="tab-exams-btn" onclick="renderAdminTab('exams')">📋 All Exams</button>
-      <button class="tab-btn" id="tab-results-btn" onclick="renderAdminTab('results')">📊 User Results</button>
-    </div>
-
-    <div class="container">
-      <div id="admin-tab-content"></div>
-    </div>
-  </div>
-
-  <!-- Screen 9 — User History Dashboard -->
-  <div id="screen-user-history" class="screen hidden">
-    <div class="container">
-      <div class="card">
-        <div class="history-header" style="display: flex; justify-content: space-between; align-items: center;">
-          <h2>📂 My Exam History</h2>
-          <button class="btn btn-sm btn-outline" onclick="showScreen('screen-login'); currentUser = null;">Logout</button>
-        </div>
-        <p id="history-user-email" class="subtitle"></p>
-
-        <div id="history-list"></div>
-
-        <p id="history-empty" class="empty-state hidden" style="text-align: center; color: #666; margin-top: 20px;">
-          No exams taken yet. Ask your administrator for an exam link.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <!-- CDNs -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>

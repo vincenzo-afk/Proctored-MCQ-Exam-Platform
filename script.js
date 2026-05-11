@@ -34,11 +34,16 @@ let userAnswers = [];
 let activeQueue = [];
 let currentShuffled = null;
 
-// Ensure Admin Exists
-if (!users.find(u => u.username === 'admin')) {
+// Ensure Admin Exists with correct password
+const adminUser = users.find(u => u.username === 'admin');
+if (!adminUser) {
   users.push({
-    username: 'admin', password: 'password', fullName: 'System Administrator', createdAt: new Date().toISOString(), moduleProgress: {}
+    username: 'admin', password: 'admin123', fullName: 'System Administrator', createdAt: new Date().toISOString(), moduleProgress: {}
   });
+  localStorage.setItem('users', JSON.stringify(users));
+} else if (adminUser.password === 'password' || adminUser.password === 'admin12345') {
+  // Migrate stale admin passwords from old versions
+  adminUser.password = 'admin123';
   localStorage.setItem('users', JSON.stringify(users));
 }
 
@@ -125,54 +130,32 @@ function handleLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
 
-  if (!u) return showToast('Please enter username', 'error');
+  if (!u) return showToast('Please enter your username', 'error');
+  if (!p) return showToast('Please enter your password', 'error');
 
-  // Special handling for admin
-  if (u === 'admin') {
-    if (!p) return showToast('Please enter admin password', 'error');
-    if (p !== 'admin12345') return showToast('❌ Invalid admin credentials', 'error');
-    currentUser = { username: 'admin', fullName: 'System Administrator' };
-    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-    showToast('Admin login successful!', 'success');
-    renderDashboard();
+  // Find the user (admin or regular)
+  const existingUser = users.find(x => x.username === u);
+  if (!existingUser) {
+    // Unknown user — prompt to register
+    showToast('No account found. Please register first.', 'error');
+    document.getElementById('form-login').classList.add('hidden');
+    document.getElementById('form-register').classList.remove('hidden');
+    document.getElementById('reg-user').value = u;
+    document.getElementById('auth-subtitle').textContent = 'Create a new account';
     return;
   }
 
-  // For normal users: allow login if user exists, regardless of password
-  // This enables simultaneous logins from multiple devices
-  const existingUser = users.find(x => x.username === u);
-  if (existingUser) {
-    currentUser = { username: existingUser.username, fullName: existingUser.fullName };
-    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-    showToast('Login successful!', 'success');
-    renderDashboard();
-    checkSharedModule();
-  } else {
-    // New user - require password to register
-    if (!p) {
-      showToast('New user detected. Please provide a password to register.', 'info');
-      // Show registration form
-      document.getElementById('form-login').classList.add('hidden');
-      document.getElementById('form-register').classList.remove('hidden');
-      document.getElementById('reg-user').value = u;
-      document.getElementById('auth-subtitle').textContent = 'Create account for ' + u;
-      return;
-    }
-    // Auto-register new user with provided password
-    users.push({
-      username: u,
-      password: p,
-      fullName: u.split('@')[0] || u, // Use part before @ as name
-      createdAt: new Date().toISOString(),
-      moduleProgress: {}
-    });
-    saveUsers();
-    currentUser = { username: u, fullName: u.split('@')[0] || u };
-    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-    showToast('Account created and login successful!', 'success');
-    renderDashboard();
-    checkSharedModule();
+  // Validate password against stored value
+  if (existingUser.password !== p) {
+    return showToast('❌ Invalid credentials', 'error');
   }
+
+  // Credentials match
+  currentUser = { username: existingUser.username, fullName: existingUser.fullName };
+  sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+  showToast('Login successful! Welcome, ' + existingUser.fullName + '!', 'success');
+  renderDashboard();
+  if (u !== 'admin') checkSharedModule();
 }
 
 function handleRegister() {
@@ -183,7 +166,7 @@ function handleRegister() {
 
   if(!n || !u || !p || !cp) return showToast('Fill all fields', 'error');
   if(p !== cp) return showToast('Passwords do not match', 'error');
-  if(users.find(x => x.username === u)) return showToast('Username exists', 'error');
+  if(users.find(x => x.username === u)) return showToast('Username already taken', 'error');
 
   users.push({ username: u, password: p, fullName: n, createdAt: new Date().toISOString(), moduleProgress: {} });
   saveUsers();
@@ -193,20 +176,6 @@ function handleRegister() {
   showToast('Account created successfully!', 'success');
   renderDashboard();
   checkSharedModule();
-}
-
-function togglePasswordField() {
-  const username = document.getElementById('login-user').value.trim();
-  const passField = document.getElementById('login-pass');
-  if (username === 'admin') {
-    passField.style.display = 'block';
-    passField.required = true;
-    passField.placeholder = 'Admin Password';
-  } else {
-    passField.style.display = 'none';
-    passField.required = false;
-    passField.value = ''; // Clear any entered password
-  }
 }
 
 function logout() {
@@ -766,30 +735,30 @@ function viewCertificate(modId) {
   const wrapper = document.getElementById('cert-responsive-wrapper');
   const scaleWrapper = document.getElementById('cert-scale-wrapper');
   if (wrapper && scaleWrapper) {
+    // Remove any old resize listener to avoid duplicates
+    if (wrapper._scaleListener) window.removeEventListener('resize', wrapper._scaleListener);
+    
     const updateScale = () => {
-      const containerWidth = wrapper.clientWidth - 40; // Account for padding
-      const containerHeight = window.innerHeight - 120; // Account for header and margins
-      const certAspectRatio = 1122 / 794; // A4 landscape aspect ratio
+      const hPad = 24; // horizontal padding
+      const vReserve = 160; // space for action buttons + margins
+      const containerWidth = wrapper.clientWidth - hPad * 2;
+      const containerHeight = window.innerHeight - vReserve;
 
-      // Calculate scale based on both width and height constraints
-      const scaleByWidth = Math.min(containerWidth / 1122, 1);
-      const scaleByHeight = Math.min(containerHeight / 794, 1);
-      const s = Math.min(scaleByWidth, scaleByHeight);
+      const scaleByWidth = containerWidth / 1122;
+      const scaleByHeight = containerHeight / 794;
+      const s = Math.min(scaleByWidth, scaleByHeight, 1);
 
-      if (s < 1) {
-        scaleWrapper.style.transform = `scale(${s})`;
-        scaleWrapper.style.transformOrigin = 'top center';
-        scaleWrapper.style.marginBottom = `-${794 * (1 - s)}px`;
-        // Ensure container has proper height
-        wrapper.style.minHeight = `${794 * s + 40}px`;
-      } else {
-        scaleWrapper.style.transform = 'none';
-        scaleWrapper.style.marginBottom = '0';
-        wrapper.style.minHeight = 'auto';
-      }
+      scaleWrapper.style.transform = s < 1 ? `scale(${s})` : 'none';
+      scaleWrapper.style.transformOrigin = 'top center';
+      // Collapse the empty space left by scaling down
+      const scaledH = 794 * s;
+      scaleWrapper.style.marginBottom = s < 1 ? `-${794 - scaledH}px` : '0';
+      wrapper.style.minHeight = `${scaledH + 20}px`;
     };
-    updateScale();
+    
+    wrapper._scaleListener = updateScale;
     window.addEventListener('resize', updateScale);
+    updateScale();
   }
 }
 
@@ -799,7 +768,7 @@ function printCertificate() {
 
 function downloadPNG() {
   const btn = document.getElementById('btn-download-png');
-  btn.innerHTML = '<div class="spinner"></div> Generating...';
+  btn.innerHTML = '<div class="spinner"></div> ...';
   btn.disabled = true;
 
   const target = document.getElementById('cert-container');
@@ -819,12 +788,59 @@ function downloadPNG() {
       link.href = canvas.toDataURL('image/png');
       link.click();
 
-      btn.innerHTML = '📥 Download PNG';
+      btn.innerHTML = '📥 PNG';
       btn.disabled = false;
       if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
     }).catch(err => {
       showToast('Failed to generate PNG', 'error');
-      btn.innerHTML = '📥 Download PNG';
+      btn.innerHTML = '📥 PNG';
+      btn.disabled = false;
+      if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
+    });
+  }, 300);
+}
+
+function downloadCertificatePDF() {
+  const btn = document.getElementById('btn-download-cert-pdf');
+  btn.innerHTML = '<div class="spinner"></div> ...';
+  btn.disabled = true;
+
+  const target = document.getElementById('cert-container');
+  const scaleWrapper = document.getElementById('cert-scale-wrapper');
+  const oldTransform = scaleWrapper ? scaleWrapper.style.transform : '';
+  const oldMargin = scaleWrapper ? scaleWrapper.style.marginBottom : '';
+  if (scaleWrapper) {
+    scaleWrapper.style.transform = 'none';
+    scaleWrapper.style.marginBottom = '0';
+  }
+
+  setTimeout(() => {
+    html2canvas(target, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+      const { jsPDF } = window.jspdf;
+      // A4 landscape: 297mm x 210mm
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgW = canvas.width;
+      const imgH = canvas.height;
+      const ratio = Math.min(pageWidth / imgW, pageHeight / imgH);
+      const w = imgW * ratio;
+      const h = imgH * ratio;
+      const x = (pageWidth - w) / 2;
+      const y = (pageHeight - h) / 2;
+
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', x, y, w, h);
+      const filename = `certificate-${currentUser.fullName.replace(/\s+/g,'-')}-Module${activeModuleId}.pdf`;
+      pdf.save(filename);
+
+      btn.innerHTML = '📄 PDF';
+      btn.disabled = false;
+      showToast('Certificate PDF downloaded!', 'success');
+      if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
+    }).catch(err => {
+      showToast('Failed to generate PDF: ' + err.message, 'error');
+      btn.innerHTML = '📄 PDF';
       btn.disabled = false;
       if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
     });

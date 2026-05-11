@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -30,8 +31,8 @@
 
         <!-- Login Form -->
         <div id="form-login">
-          <input type="text" id="login-user" placeholder="Username or Email" class="input-field" oninput="togglePasswordField()" />
-          <input type="password" id="login-pass" placeholder="Password (required for admin only)" class="input-field" style="display: none;" />
+          <input type="text" id="login-user" placeholder="Username" class="input-field" />
+          <input type="password" id="login-pass" placeholder="Password" class="input-field" />
           <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Login</button>
           <p style="margin-top: 20px; font-size: 14px; color: var(--text-muted);">
             Don't have an account? <a href="#" onclick="toggleAuth('register')" style="color: var(--accent); font-weight: 600;">Register</a>
@@ -251,10 +252,11 @@
   <div id="screen-certificate" class="screen hidden">
     <div class="container" style="max-width: 1200px; padding-top: 20px;">
       
-      <div class="cert-actions" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;">
+      <div class="cert-actions" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center; flex-wrap: wrap;">
         <button class="btn btn-secondary" onclick="renderDashboard()">← Back</button>
-        <button class="btn btn-primary" onclick="printCertificate()">🖨 Print Certificate</button>
-        <button id="btn-download-png" class="btn btn-success" onclick="downloadPNG()">📥 Download PNG</button>
+        <button class="btn btn-primary" onclick="printCertificate()">🖨 Print</button>
+        <button id="btn-download-png" class="btn btn-success" onclick="downloadPNG()">📥 PNG</button>
+        <button id="btn-download-cert-pdf" class="btn btn-primary" style="background: #c9a84c; border-color: #c9a84c;" onclick="downloadCertificatePDF()">📄 PDF</button>
       </div>
 
       <!-- Certificate Container (Responsive via JS scale) -->

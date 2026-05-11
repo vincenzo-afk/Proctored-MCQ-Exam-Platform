@@ -170,7 +170,10 @@ function renderDashboard() {
     if (currentUser.username === 'admin') {
       adminInfo = `
         <div style="margin-top:15px; padding-top:10px; border-top:1px solid var(--border);">
-          <div style="font-size:12px; color:var(--success); margin-bottom:5px; font-weight:600;">✅ Loaded (${qCount} Qs)</div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size:12px; color:var(--success); font-weight:600;">✅ Loaded (${qCount} Qs)</div>
+            <button class="btn btn-sm btn-outline" style="border-color:var(--error); color:var(--error); padding: 4px 8px; font-size: 12px;" onclick="deleteModule(${mod.id})">🗑 Delete</button>
+          </div>
           <input type="file" id="admin-file-${mod.id}" accept=".xlsx,.xls" class="input-field" style="padding: 6px; font-size:12px; margin-bottom:0;" onchange="uploadExcelFromCard(${mod.id})" />
         </div>
       `;
@@ -280,6 +283,23 @@ function createNewModule() {
   document.getElementById('new-mod-desc').value = '';
   
   showToast(`Module ${newId} created!`, 'success');
+  renderDashboard();
+}
+
+function deleteModule(modId) {
+  if (!confirm(`Are you sure you want to delete Module ${modId}? This action cannot be undone.`)) return;
+  
+  globalModules = globalModules.filter(m => m.id !== modId);
+  localStorage.setItem('globalModules', JSON.stringify(globalModules));
+  
+  users.forEach(u => {
+    if (u.moduleProgress && u.moduleProgress[modId]) {
+      delete u.moduleProgress[modId];
+    }
+  });
+  saveUsers();
+  
+  showToast(`Module ${modId} deleted successfully`, 'success');
   renderDashboard();
 }
 
@@ -612,17 +632,30 @@ function downloadPNG() {
   btn.disabled = true;
   
   const target = document.getElementById('cert-container');
-  html2canvas(target, { scale: 2, useCORS: true, logging: false }).then(canvas => {
-    const link = document.createElement('a');
-    link.download = `certificate-${currentUser.fullName.replace(/\s+/g,'-')}-Module${activeModuleId}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    
-    btn.innerHTML = '📥 Download PNG';
-    btn.disabled = false;
-  }).catch(err => {
-    showToast('Failed to generate PNG', 'error');
-    btn.innerHTML = '📥 Download PNG';
-    btn.disabled = false;
-  });
+  const scaleWrapper = document.getElementById('cert-scale-wrapper');
+  
+  const oldTransform = scaleWrapper ? scaleWrapper.style.transform : '';
+  const oldMargin = scaleWrapper ? scaleWrapper.style.marginBottom : '';
+  if (scaleWrapper) {
+    scaleWrapper.style.transform = 'none';
+    scaleWrapper.style.marginBottom = '0';
+  }
+  
+  setTimeout(() => {
+    html2canvas(target, { scale: 2, useCORS: true, logging: false }).then(canvas => {
+      const link = document.createElement('a');
+      link.download = `certificate-${currentUser.fullName.replace(/\s+/g,'-')}-Module${activeModuleId}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+      
+      btn.innerHTML = '📥 Download PNG';
+      btn.disabled = false;
+      if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
+    }).catch(err => {
+      showToast('Failed to generate PNG', 'error');
+      btn.innerHTML = '📥 Download PNG';
+      btn.disabled = false;
+      if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
+    });
+  }, 300);
 }

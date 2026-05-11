@@ -14,6 +14,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -316,17 +317,17 @@
   </div>
 
   <!-- Share Modal -->
-  <div id="modal-share" class="screen hidden" style="background: rgba(0,0,0,0.6); position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center;">
-    <div class="card" style="width: 100%; max-width: 400px; text-align: center; position: relative;">
-      <button class="btn btn-sm" style="position: absolute; top: 10px; right: 10px; background: transparent; color: var(--text);" onclick="document.getElementById('modal-share').classList.add('hidden')">✖</button>
-      <h2>Share Module</h2>
-      <p class="subtitle" style="margin-bottom: 20px;">Scan the QR code or copy the link below to share this exam.</p>
+  <div id="modal-share" class="modal-overlay hidden">
+    <div class="card modal-card">
+      <button class="modal-close-btn" onclick="closeShareModal()" aria-label="Close">✖</button>
+      <h2>🔗 Share Module</h2>
+      <p class="subtitle" style="margin-bottom: 20px;">Scan the QR code or copy the link below.</p>
       
-      <div style="background: white; padding: 20px; display: inline-block; border-radius: 10px; margin-bottom: 20px;">
-        <img id="share-qr" src="" alt="QR Code" style="width: 200px; height: 200px;" />
+      <div style="background: white; padding: 16px; display: inline-block; border-radius: 10px; margin-bottom: 20px;">
+        <img id="share-qr" src="" alt="QR Code" style="width: 180px; height: 180px; display: block;" />
       </div>
       
-      <input type="text" id="share-link" class="input-field" readonly style="text-align: center; margin-bottom: 10px;" />
+      <input type="text" id="share-link" class="input-field" readonly style="text-align: center; margin-bottom: 10px; font-size: 13px;" />
       <button class="btn btn-primary" style="width: 100%;" onclick="copyShareLink()">📋 Copy Link</button>
     </div>
   </div>

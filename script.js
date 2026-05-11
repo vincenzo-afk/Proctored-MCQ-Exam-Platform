@@ -400,23 +400,27 @@ function deleteModule(modId) {
 }
 
 function shareModule(modId) {
-  let baseUrl = window.location.href.split('?')[0];
+  const baseUrl = window.location.href.split('?')[0];
   const shareUrl = baseUrl + '?module=' + modId;
   document.getElementById('share-link').value = shareUrl;
-  document.getElementById('share-qr').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+  document.getElementById('share-qr').src =
+    `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
+  // Show modal: remove hidden class (modal-overlay handles its own display)
   document.getElementById('modal-share').classList.remove('hidden');
+}
+
+function closeShareModal() {
+  document.getElementById('modal-share').classList.add('hidden');
 }
 
 function copyShareLink() {
   const input = document.getElementById('share-link');
   input.select();
+  input.setSelectionRange(0, 99999); // mobile support
   if (navigator.clipboard && window.isSecureContext) {
-    navigator.clipboard.writeText(input.value).then(() => {
-      showToast('Link copied to clipboard!', 'success');
-    }).catch(err => {
-      document.execCommand('copy');
-      showToast('Link copied to clipboard!', 'success');
-    });
+    navigator.clipboard.writeText(input.value)
+      .then(() => showToast('Link copied to clipboard!', 'success'))
+      .catch(() => { document.execCommand('copy'); showToast('Link copied!', 'success'); });
   } else {
     document.execCommand('copy');
     showToast('Link copied to clipboard!', 'success');

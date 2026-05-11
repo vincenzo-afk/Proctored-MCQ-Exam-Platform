@@ -297,7 +297,53 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
 .result-table td { padding: 14px; border-top: 1px solid var(--border); vertical-align: middle; }
 .result-table tr:hover td { background: var(--hover-bg); }
 
+/* ── Modal Overlay (Share, etc.) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.hidden { display: none !important; }
+.modal-card {
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  position: relative;
+  animation: fadeIn 0.2s ease;
+}
+.modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+.modal-close-btn:hover { background: var(--border); }
+
 /* ── Certificate Redesign ── */
+#screen-certificate {
+  overflow-y: auto;
+  min-height: 100vh;
+}
+#screen-certificate > .container {
+  padding-bottom: 40px;
+}
 #cert-container {
   width: 1122px;
   height: 794px;
@@ -332,23 +378,35 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
 
 /* ── Print Media ── */
 @media print {
-  @page { size: A4 landscape; margin: 0; }
-  * { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; }
+  @page { size: A4 landscape; margin: 8mm; }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   body { margin: 0; padding: 0; background: #fff !important; }
-  .screen { display: none !important; }
-  #screen-certificate { display: block !important; position: fixed; inset: 0; width: 100vw; height: 100vh; padding: 0; margin: 0; }
+  /* Hide everything except the certificate screen */
+  .screen, .modal-overlay { display: none !important; }
+  #screen-certificate {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    overflow: visible;
+    background: #fff !important;
+  }
   .cert-actions { display: none !important; }
   #cert-responsive-wrapper {
-    width: 100vw !important;
-    height: 100vh !important;
+    width: 100% !important;
+    height: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
-    background: #fff !important;
+    background: transparent !important;
     border-radius: 0 !important;
     overflow: visible !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    min-height: unset !important;
   }
   #cert-scale-wrapper {
     transform: none !important;
@@ -357,189 +415,121 @@ h1, h2, h3 { margin-bottom: 10px; color: var(--text); font-weight: 700; }
     height: auto !important;
   }
   #cert-container {
+    width: 260mm !important;
+    height: 178mm !important;
     transform: none !important;
-    width: 277mm !important;
-    height: 190mm !important;
     box-shadow: none !important;
-    page-break-after: avoid !important;
-    page-break-before: avoid !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
     background-color: #fffaf0 !important;
-    background-image: radial-gradient(circle at center, #ffffff 40%, transparent 100%), repeating-linear-gradient(45deg, rgba(200,168,76,0.03) 0, rgba(200,168,76,0.03) 1px, transparent 1px, transparent 10px) !important;
+    background-image:
+      radial-gradient(circle at center, #ffffff 40%, transparent 100%),
+      repeating-linear-gradient(45deg, rgba(200,168,76,0.03) 0, rgba(200,168,76,0.03) 1px, transparent 1px, transparent 10px) !important;
   }
   .cert-outer-border {
     border: 3px solid #1a1a2e !important;
     outline: 10px solid #c9a84c !important;
-    outline-offset: -12px !important;
+    outline-offset: -14px !important;
     height: 100% !important;
-    padding: 30px 50px !important;
+    padding: 28px 48px !important;
     box-sizing: border-box !important;
+    position: relative !important;
   }
-  #cert-display-title { font-size: 30px !important; letter-spacing: 4px !important; }
-  #cert-name { font-size: 32px !important; }
-  #cert-module { font-size: 18px !important; }
+  #cert-display-title { font-size: 28px !important; letter-spacing: 4px !important; }
+  #cert-name { font-size: 30px !important; }
+  #cert-module { font-size: 17px !important; }
   #cert-score { font-size: 22px !important; }
   img { max-width: 100% !important; height: auto !important; }
 }
 
 /* ── Mobile Optimization ── */
 @media (max-width: 768px) {
-  /* General mobile improvements */
-  body { font-size: 16px; } /* Prevent zoom on iOS */
+  body { font-size: 16px; }
   .container { padding: 12px; }
   .card { padding: 20px 16px; border-radius: 12px; }
 
   /* Touch-friendly buttons */
-  .btn {
-    min-height: 48px; /* Minimum touch target size */
-    padding: 14px 20px;
-    font-size: 16px;
-    border-radius: 12px;
-  }
-  .btn-sm { min-height: 44px; padding: 10px 16px; }
-  .btn-large { min-height: 52px; padding: 16px 24px; font-size: 18px; }
+  .btn { min-height: 48px; padding: 14px 20px; font-size: 15px; border-radius: 12px; }
+  .btn-sm { min-height: 40px; padding: 8px 14px; font-size: 13px; }
+  .btn-large { min-height: 52px; padding: 16px 20px; font-size: 16px; }
 
-  /* Form elements */
-  .input-field {
-    padding: 16px 18px;
-    font-size: 16px;
-    border-radius: 12px;
-    min-height: 48px;
-  }
-  .input-label { font-size: 15px; margin-bottom: 10px; }
+  /* Forms */
+  .input-field { padding: 15px 16px; font-size: 16px; border-radius: 12px; min-height: 48px; }
+  .input-label { font-size: 14px; margin-bottom: 8px; }
 
-  /* Headers and navigation */
+  /* Dashboard header stacks vertically */
   .dash-header {
     flex-direction: column;
-    gap: 12px;
-    padding: 15px;
+    gap: 10px;
+    padding: 14px 16px;
     align-items: stretch;
   }
   .dash-header > div:last-child {
     width: 100%;
-    justify-content: space-between;
+    display: flex;
     flex-wrap: wrap;
+    justify-content: space-between;
     gap: 8px;
   }
   .dash-header .logo { font-size: 18px; text-align: center; }
 
-  /* Module grid */
-  .module-grid {
-    grid-template-columns: 1fr;
-    gap: 15px;
-    margin-top: 15px;
-  }
-  .module-card {
-    padding: 20px;
-    border-radius: 12px;
-  }
+  /* Modules single column */
+  .module-grid { grid-template-columns: 1fr; gap: 14px; margin-top: 14px; }
+  .module-card { padding: 18px; }
 
-  /* Exam interface */
-  .exam-topbar {
-    flex-direction: column;
-    gap: 10px;
-    text-align: center;
-    padding: 15px;
-    font-size: 14px;
-  }
-  .question-text {
-    font-size: 18px;
-    line-height: 1.4;
-    margin-bottom: 20px;
-  }
-  .option-btn {
-    padding: 18px 20px;
-    margin: 8px 0;
-    font-size: 16px;
-    border-radius: 12px;
-    text-align: left;
-    min-height: 48px;
-    display: flex;
-    align-items: center;
-  }
+  /* Exam */
+  .exam-topbar { flex-direction: column; gap: 6px; text-align: center; padding: 12px 16px; font-size: 13px; }
+  .question-text { font-size: 17px; line-height: 1.45; margin-bottom: 18px; }
+  .option-btn { padding: 16px 18px; margin: 7px 0; font-size: 15px; border-radius: 12px; min-height: 52px; display: flex; align-items: center; }
 
-  /* Result screen */
-  .result-stats {
-    flex-direction: column;
-    gap: 12px;
-  }
-  .stat-box {
-    padding: 16px;
-    border-radius: 12px;
-    min-height: 80px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-  }
-  .stat-value { font-size: 28px; }
+  /* Result */
+  .result-stats { flex-direction: column; gap: 10px; }
+  .stat-box { padding: 14px; min-height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .stat-value { font-size: 26px; }
 
-  /* Tables */
-  .table-wrapper {
-    border-radius: 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-  .result-table {
-    font-size: 13px;
-    min-width: 600px; /* Ensure scrollable on mobile */
-  }
-  .result-table th, .result-table td {
-    padding: 12px 8px;
-    white-space: nowrap;
-  }
+  /* Tables scroll on mobile */
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .result-table { font-size: 12px; min-width: 550px; }
+  .result-table th, .result-table td { padding: 10px 8px; white-space: nowrap; }
 
-  /* Certificate */
+  /* Certificate actions — 2x2 grid on mobile */
   .cert-actions {
-    flex-direction: column;
-    gap: 12px;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 4px;
+    margin-bottom: 14px;
   }
-  .cert-actions .btn {
-    width: 100%;
-    margin-bottom: 0;
-    min-height: 48px;
+  .cert-actions .btn { width: 100%; min-height: 46px; font-size: 14px; padding: 12px 8px; }
+
+  /* Certificate wrapper: scrollable, tight padding */
+  #cert-responsive-wrapper {
+    padding: 8px !important;
+    border-radius: 8px !important;
+    overflow-x: auto !important;
   }
 
   /* Admin panel */
-  #admin-panel > div[style*="display: flex"] {
-    flex-direction: column;
-    align-items: stretch !important;
-    gap: 12px;
-  }
-  #admin-panel > div[style*="display: grid"] {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  #admin-panel input[type="number"] {
-    max-width: none;
-    width: 100%;
-  }
+  #admin-panel > div { flex-direction: column; align-items: stretch !important; gap: 12px; }
+  #admin-panel input[type="number"] { max-width: none; width: 100%; }
 
-  /* Modal improvements */
-  #modal-share .card {
-    width: 95%;
-    max-width: 400px;
-  }
-  #modal-share .card button {
-    width: 100%;
-  }
+  /* Modal */
+  .modal-card { margin: 0 8px; }
+  #share-qr { width: 150px !important; height: 150px !important; }
 
-  /* Toast positioning */
-  #toast-container {
-    bottom: 20px;
-    top: auto;
-    right: 15px;
-    left: 15px;
-  }
+  /* Toast at bottom on mobile */
+  #toast-container { bottom: 20px; top: auto; right: 12px; left: 12px; }
 }
 
 /* Extra small screens */
 @media (max-width: 480px) {
   .container { padding: 8px; }
-  .card { padding: 16px 12px; }
-  .btn { font-size: 15px; }
-  .question-text { font-size: 16px; }
-  .option-btn { font-size: 15px; padding: 16px 18px; }
-  .stat-value { font-size: 24px; }
+  .card { padding: 14px 12px; }
+  .btn { font-size: 14px; }
+  .question-text { font-size: 15px; }
+  .option-btn { font-size: 14px; padding: 14px 14px; }
+  .stat-value { font-size: 22px; }
+  /* Certificate: single column actions */
+  .cert-actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .cert-actions .btn { font-size: 13px; padding: 10px 6px; }
 }

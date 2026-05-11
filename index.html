@@ -30,8 +30,8 @@
 
         <!-- Login Form -->
         <div id="form-login">
-          <input type="text" id="login-user" placeholder="Username" class="input-field" />
-          <input type="password" id="login-pass" placeholder="Password" class="input-field" />
+          <input type="text" id="login-user" placeholder="Username or Email" class="input-field" oninput="togglePasswordField()" />
+          <input type="password" id="login-pass" placeholder="Password (required for admin only)" class="input-field" style="display: none;" />
           <button class="btn btn-primary" style="width: 100%;" onclick="handleLogin()">Login</button>
           <p style="margin-top: 20px; font-size: 14px; color: var(--text-muted);">
             Don't have an account? <a href="#" onclick="toggleAuth('register')" style="color: var(--accent); font-weight: 600;">Register</a>
@@ -235,7 +235,10 @@
           </table>
         </div>
         
-        <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
+        <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button class="btn btn-primary btn-large" onclick="downloadResultPDF()">
+            📄 Download PDF Report
+          </button>
           <button class="btn btn-secondary btn-large" onclick="renderDashboard()">
             ← Back to Dashboard
           </button>
@@ -255,7 +258,7 @@
       </div>
 
       <!-- Certificate Container (Responsive via JS scale) -->
-      <div id="cert-responsive-wrapper" style="width: 100%; overflow: hidden; background: var(--bg); padding: 20px; border-radius: 12px; display: flex; justify-content: center;">
+      <div id="cert-responsive-wrapper" style="width: 100%; overflow: hidden; background: var(--bg); padding: 20px; border-radius: 12px; display: flex; justify-content: center; min-height: 200px;">
         <div id="cert-scale-wrapper" style="width: 1122px; height: 794px; transform-origin: top center;">
           <div id="cert-container">
           <div class="cert-outer-border">

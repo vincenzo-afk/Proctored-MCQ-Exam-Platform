@@ -124,17 +124,54 @@ function toggleAuth(type) {
 function handleLogin() {
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value.trim();
-  if(!u || !p) return showToast('Please enter credentials', 'error');
 
-  const match = users.find(x => x.username === u && x.password === p);
-  if (match) {
-    currentUser = { username: match.username, fullName: match.fullName };
+  if (!u) return showToast('Please enter username', 'error');
+
+  // Special handling for admin
+  if (u === 'admin') {
+    if (!p) return showToast('Please enter admin password', 'error');
+    if (p !== 'admin12345') return showToast('❌ Invalid admin credentials', 'error');
+    currentUser = { username: 'admin', fullName: 'System Administrator' };
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    showToast('Admin login successful!', 'success');
+    renderDashboard();
+    return;
+  }
+
+  // For normal users: allow login if user exists, regardless of password
+  // This enables simultaneous logins from multiple devices
+  const existingUser = users.find(x => x.username === u);
+  if (existingUser) {
+    currentUser = { username: existingUser.username, fullName: existingUser.fullName };
     sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
     showToast('Login successful!', 'success');
     renderDashboard();
     checkSharedModule();
   } else {
-    showToast('❌ Invalid credentials', 'error');
+    // New user - require password to register
+    if (!p) {
+      showToast('New user detected. Please provide a password to register.', 'info');
+      // Show registration form
+      document.getElementById('form-login').classList.add('hidden');
+      document.getElementById('form-register').classList.remove('hidden');
+      document.getElementById('reg-user').value = u;
+      document.getElementById('auth-subtitle').textContent = 'Create account for ' + u;
+      return;
+    }
+    // Auto-register new user with provided password
+    users.push({
+      username: u,
+      password: p,
+      fullName: u.split('@')[0] || u, // Use part before @ as name
+      createdAt: new Date().toISOString(),
+      moduleProgress: {}
+    });
+    saveUsers();
+    currentUser = { username: u, fullName: u.split('@')[0] || u };
+    sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
+    showToast('Account created and login successful!', 'success');
+    renderDashboard();
+    checkSharedModule();
   }
 }
 
@@ -156,6 +193,20 @@ function handleRegister() {
   showToast('Account created successfully!', 'success');
   renderDashboard();
   checkSharedModule();
+}
+
+function togglePasswordField() {
+  const username = document.getElementById('login-user').value.trim();
+  const passField = document.getElementById('login-pass');
+  if (username === 'admin') {
+    passField.style.display = 'block';
+    passField.required = true;
+    passField.placeholder = 'Admin Password';
+  } else {
+    passField.style.display = 'none';
+    passField.required = false;
+    passField.value = ''; // Clear any entered password
+  }
 }
 
 function logout() {
@@ -716,14 +767,25 @@ function viewCertificate(modId) {
   const scaleWrapper = document.getElementById('cert-scale-wrapper');
   if (wrapper && scaleWrapper) {
     const updateScale = () => {
-      const w = wrapper.clientWidth - 40;
-      if (w < 1122) {
-        const s = w / 1122;
+      const containerWidth = wrapper.clientWidth - 40; // Account for padding
+      const containerHeight = window.innerHeight - 120; // Account for header and margins
+      const certAspectRatio = 1122 / 794; // A4 landscape aspect ratio
+
+      // Calculate scale based on both width and height constraints
+      const scaleByWidth = Math.min(containerWidth / 1122, 1);
+      const scaleByHeight = Math.min(containerHeight / 794, 1);
+      const s = Math.min(scaleByWidth, scaleByHeight);
+
+      if (s < 1) {
         scaleWrapper.style.transform = `scale(${s})`;
+        scaleWrapper.style.transformOrigin = 'top center';
         scaleWrapper.style.marginBottom = `-${794 * (1 - s)}px`;
+        // Ensure container has proper height
+        wrapper.style.minHeight = `${794 * s + 40}px`;
       } else {
         scaleWrapper.style.transform = 'none';
         scaleWrapper.style.marginBottom = '0';
+        wrapper.style.minHeight = 'auto';
       }
     };
     updateScale();
@@ -739,24 +801,24 @@ function downloadPNG() {
   const btn = document.getElementById('btn-download-png');
   btn.innerHTML = '<div class="spinner"></div> Generating...';
   btn.disabled = true;
-  
+
   const target = document.getElementById('cert-container');
   const scaleWrapper = document.getElementById('cert-scale-wrapper');
-  
+
   const oldTransform = scaleWrapper ? scaleWrapper.style.transform : '';
   const oldMargin = scaleWrapper ? scaleWrapper.style.marginBottom : '';
   if (scaleWrapper) {
     scaleWrapper.style.transform = 'none';
     scaleWrapper.style.marginBottom = '0';
   }
-  
+
   setTimeout(() => {
     html2canvas(target, { scale: 2, useCORS: true, logging: false }).then(canvas => {
       const link = document.createElement('a');
       link.download = `certificate-${currentUser.fullName.replace(/\s+/g,'-')}-Module${activeModuleId}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
-      
+
       btn.innerHTML = '📥 Download PNG';
       btn.disabled = false;
       if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
@@ -767,4 +829,91 @@ function downloadPNG() {
       if (scaleWrapper) { scaleWrapper.style.transform = oldTransform; scaleWrapper.style.marginBottom = oldMargin; }
     });
   }, 300);
+}
+
+function downloadResultPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Get current result data from the screen
+  const resultHeader = document.getElementById('result-header').textContent.trim();
+  const resultStats = document.getElementById('result-stats');
+  const statBoxes = resultStats.querySelectorAll('.stat-box');
+  const tableBody = document.getElementById('result-table-body');
+
+  // Title
+  doc.setFontSize(20);
+  doc.setTextColor(0, 102, 204);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Exam Result Report', 105, 20, { align: 'center' });
+
+  // Header info
+  doc.setFontSize(14);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.text(resultHeader.replace(/🎉|😞/g, '').trim(), 105, 35, { align: 'center' });
+
+  // Stats
+  let yPos = 50;
+  statBoxes.forEach((box, index) => {
+    const label = box.querySelector('.stat-label').textContent;
+    const value = box.querySelector('.stat-value').textContent;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(label + ':', 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, 60, yPos);
+    yPos += 10;
+  });
+
+  // Table data
+  const tableData = [];
+  const rows = tableBody.querySelectorAll('tr');
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    const rowData = [];
+    cells.forEach(cell => {
+      rowData.push(cell.textContent);
+    });
+    tableData.push(rowData);
+  });
+
+  // Add table
+  doc.autoTable({
+    startY: yPos + 10,
+    head: [['#', 'Question', 'Your Answer', 'Correct Answer', 'Result']],
+    body: tableData,
+    theme: 'grid',
+    styles: {
+      fontSize: 8,
+      cellPadding: 3,
+    },
+    headStyles: {
+      fillColor: [0, 102, 204],
+      textColor: 255,
+      fontSize: 9,
+      fontStyle: 'bold'
+    },
+    alternateRowStyles: {
+      fillColor: [245, 245, 245]
+    },
+    columnStyles: {
+      0: { cellWidth: 10 },
+      1: { cellWidth: 60 },
+      2: { cellWidth: 30 },
+      3: { cellWidth: 30 },
+      4: { cellWidth: 20 }
+    }
+  });
+
+  // Footer
+  const pageHeight = doc.internal.pageSize.height;
+  doc.setFontSize(10);
+  doc.setTextColor(128, 128, 128);
+  doc.text('Generated by ExamProctor Pro', 105, pageHeight - 10, { align: 'center' });
+
+  // Save the PDF
+  const filename = `exam-result-${currentUser.fullName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+  showToast('PDF report downloaded!', 'success');
 }

@@ -219,9 +219,10 @@
         <button id="btn-download-png" class="btn btn-success" onclick="downloadPNG()">📥 Download PNG</button>
       </div>
 
-      <!-- Certificate Container (Fixed aspect ratio for high quality render) -->
-      <div style="overflow-x: auto; display: flex; justify-content: center; background: #e2e8f0; padding: 20px; border-radius: 12px;">
-        <div id="cert-container">
+      <!-- Certificate Container (Responsive via JS scale) -->
+      <div id="cert-responsive-wrapper" style="width: 100%; overflow: hidden; background: #e2e8f0; padding: 20px; border-radius: 12px; display: flex; justify-content: center;">
+        <div id="cert-scale-wrapper" style="width: 1122px; height: 794px; transform-origin: top center;">
+          <div id="cert-container">
           <div class="cert-outer-border">
             <div style="display: flex; justify-content: space-between; align-items: flex-start;">
               <img id="cert-logo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23c9a84c'><path d='M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z'/></svg>" style="width:80px; height:80px; border-radius:50%;" />

@@ -149,9 +149,14 @@ function renderDashboard() {
     card.className = 'module-card ' + (p.unlocked ? '' : 'locked');
     
     let badge = '', btn = '';
-    if (p.completed) {
-      badge = `<span class="badge badge-pass">✅ Completed (Score: ${p.score}%)</span>`;
-      btn = `<button class="btn btn-outline" style="width:100%; margin-top:auto;" onclick="startModule(${mod.id})">🔁 Retake</button>`;
+    if (p.completed || p.failedAttempt) {
+      if (p.completed) {
+        badge = `<span class="badge badge-pass">✅ Completed (Score: ${p.score || 0}%)</span>`;
+        btn = `<button class="btn btn-secondary" style="width:100%; margin-top:auto;" disabled>Already Completed</button>`;
+      } else {
+        badge = `<span class="badge badge-fail">❌ Failed (Score: ${p.score || 0}%)</span>`;
+        btn = `<button class="btn btn-secondary" style="width:100%; margin-top:auto;" disabled>Attempt Exhausted</button>`;
+      }
     } else if (p.unlocked) {
       badge = `<span class="badge" style="background:var(--accent); color:white;">▶ Ready</span>`;
       btn = `<button class="btn btn-primary" style="width:100%; margin-top:auto;" onclick="startModule(${mod.id})">Start Module</button>`;
@@ -362,24 +367,24 @@ let proctorPhotos = [];
 let proctorInterval = null;
 
 function startQuiz() {
-  const mod = globalModules.find(m => m.id === activeModuleId);
-  originalQueue = shuffleArray([...mod.questions]);
-  retryQueue = [];
-  currentQIndex = 0;
-  isRetryMode = false;
-  correctScore = 0;
-  userAnswers = [];
-  activeQueue = originalQueue;
-  proctorPhotos = [];
-  
-  showScreen('screen-exam');
-  renderQuestion();
-  
   navigator.mediaDevices.getUserMedia({ video: true })
     .then(stream => {
       photoStream = stream;
       const video = document.getElementById('proctor-video');
       if (video) video.srcObject = stream;
+      
+      const mod = globalModules.find(m => m.id === activeModuleId);
+      originalQueue = shuffleArray([...mod.questions]);
+      retryQueue = [];
+      currentQIndex = 0;
+      isRetryMode = false;
+      correctScore = 0;
+      userAnswers = [];
+      activeQueue = originalQueue;
+      proctorPhotos = [];
+      
+      showScreen('screen-exam');
+      renderQuestion();
       
       let captures = 0;
       proctorInterval = setInterval(() => {
@@ -392,7 +397,7 @@ function startQuiz() {
       }, 10000);
     })
     .catch(() => {
-      showToast('Camera access denied. Proctoring disabled.', 'error');
+      showToast('Camera access denied. You must allow camera access to take the exam.', 'error');
     });
 }
 
@@ -531,7 +536,9 @@ function finishExam() {
     }
     showToast(`🎉 Module ${activeModuleId} Complete!`, 'success');
   } else {
-    showToast(`Score too low. You need ${PASS_SCORE}% to pass.`, 'error');
+    prog.failedAttempt = true;
+    prog.score = percentage;
+    showToast(`Score too low. You needed ${PASS_SCORE}% to pass.`, 'error');
   }
   
   user.moduleProgress[activeModuleId] = prog;
@@ -575,6 +582,24 @@ function viewCertificate(modId) {
   document.getElementById('cert-date').textContent = `Issued on: ${dateStr}`;
   
   showScreen('screen-certificate');
+  
+  const wrapper = document.getElementById('cert-responsive-wrapper');
+  const scaleWrapper = document.getElementById('cert-scale-wrapper');
+  if (wrapper && scaleWrapper) {
+    const updateScale = () => {
+      const w = wrapper.clientWidth - 40;
+      if (w < 1122) {
+        const s = w / 1122;
+        scaleWrapper.style.transform = `scale(${s})`;
+        scaleWrapper.style.marginBottom = `-${794 * (1 - s)}px`;
+      } else {
+        scaleWrapper.style.transform = 'none';
+        scaleWrapper.style.marginBottom = '0';
+      }
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+  }
 }
 
 function printCertificate() {

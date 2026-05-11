@@ -444,12 +444,19 @@ function shareModule(modId) {
   document.getElementById('share-link').value = shareUrl;
   document.getElementById('share-qr').src =
     `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`;
-  // Show modal: remove hidden class (modal-overlay handles its own display)
-  document.getElementById('modal-share').classList.remove('hidden');
+  
+  // Show modal using inline style to override any class issues
+  const modal = document.getElementById('modal-share');
+  modal.style.display = 'flex';
+  modal.classList.remove('hidden');
+  
+  showToast('Share link generated!', 'success');
 }
 
 function closeShareModal() {
-  document.getElementById('modal-share').classList.add('hidden');
+  const modal = document.getElementById('modal-share');
+  modal.style.display = 'none';
+  modal.classList.add('hidden');
 }
 
 function copyShareLink() {

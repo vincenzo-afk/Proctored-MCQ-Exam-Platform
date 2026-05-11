@@ -75,6 +75,20 @@
           <button class="btn btn-primary" style="margin-bottom:0;" onclick="savePassScore()">Save Settings</button>
         </div>
 
+        <!-- Create Module Section -->
+        <h3 style="margin-top: 30px; margin-bottom: 15px;">➕ Create New Module</h3>
+        <div style="display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 30px; background: var(--bg); padding: 20px; border-radius: 12px; border: 1px dashed var(--accent);">
+          <div style="flex: 1; min-width: 200px;">
+            <label class="input-label">Module Title</label>
+            <input type="text" id="new-mod-title" placeholder="e.g. Data Structures" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <div style="flex: 2; min-width: 250px;">
+            <label class="input-label">Description</label>
+            <input type="text" id="new-mod-desc" placeholder="Short description of the module" class="input-field" style="margin-bottom:0;" />
+          </div>
+          <button class="btn btn-primary" style="margin-top: 27px; height: 48px;" onclick="createNewModule()">Add Module</button>
+        </div>
+
         <h3 style="margin-top: 30px;">Registered Users</h3>
         <div class="table-wrapper">
           <table class="result-table">

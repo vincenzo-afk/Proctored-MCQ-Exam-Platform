@@ -254,6 +254,30 @@ function resetUser(username) {
   }
 }
 
+function createNewModule() {
+  const title = document.getElementById('new-mod-title').value.trim();
+  const desc = document.getElementById('new-mod-desc').value.trim();
+  
+  if (!title) return showToast('Please enter a module title', 'error');
+  
+  const newId = globalModules.length > 0 ? Math.max(...globalModules.map(m => m.id)) + 1 : 1;
+  
+  globalModules.push({
+    id: newId,
+    title: title,
+    description: desc,
+    questions: []
+  });
+  
+  localStorage.setItem('globalModules', JSON.stringify(globalModules));
+  
+  document.getElementById('new-mod-title').value = '';
+  document.getElementById('new-mod-desc').value = '';
+  
+  showToast(`Module ${newId} created!`, 'success');
+  renderDashboard();
+}
+
 // ── Excel Upload Logic (Change 1 & 4) ──
 function uploadExcelFromCard(modId) {
   const fileInput = document.getElementById(`admin-file-${modId}`);

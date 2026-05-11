@@ -450,7 +450,8 @@ function shareModule(modId) {
   modal.style.display = 'flex';
   modal.classList.remove('hidden');
   
-  showToast('Share link generated!', 'success');
+  // Automatically copy the link to clipboard
+  copyShareLink();
 }
 
 function closeShareModal() {

@@ -328,86 +328,14 @@ function processExcel(fileInput, modId) {
   reader.readAsArrayBuffer(fileInput.files[0]);
 }
 
-// ── Photo Capture (Change 3) ──
+// ── Module Initialization ──
 function startModule(modId) {
   const mod = globalModules.find(m => m.id === modId);
   if(!mod.questions || mod.questions.length === 0) {
     return showToast('This module has no questions yet.', 'error');
   }
   activeModuleId = modId;
-  userPhoto = null;
   
-  document.getElementById('photo-preview').classList.add('hidden');
-  document.getElementById('photo-video').classList.remove('hidden');
-  document.getElementById('btn-capture').classList.remove('hidden');
-  document.getElementById('btn-retake').classList.add('hidden');
-  document.getElementById('btn-photo-continue').disabled = true;
-  
-  showScreen('screen-photo');
-  
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      photoStream = stream;
-      document.getElementById('photo-video').srcObject = stream;
-    })
-    .catch(() => {
-      showToast('Camera denied. You can upload a photo instead.', 'info');
-    });
-}
-
-function capturePhoto() {
-  if(!photoStream) return showToast('Camera not active', 'error');
-  const video = document.getElementById('photo-video');
-  const canvas = document.createElement('canvas');
-  canvas.width = 400; canvas.height = 300;
-  canvas.getContext('2d').drawImage(video, 0, 0, 400, 300);
-  userPhoto = canvas.toDataURL('image/jpeg', 0.8);
-  
-  document.getElementById('photo-preview').src = userPhoto;
-  document.getElementById('photo-preview').classList.remove('hidden');
-  video.classList.add('hidden');
-  
-  document.getElementById('btn-capture').classList.add('hidden');
-  document.getElementById('btn-retake').classList.remove('hidden');
-  document.getElementById('btn-photo-continue').disabled = false;
-}
-
-function retakePhoto() {
-  document.getElementById('photo-preview').classList.add('hidden');
-  document.getElementById('photo-video').classList.remove('hidden');
-  document.getElementById('btn-capture').classList.remove('hidden');
-  document.getElementById('btn-retake').classList.add('hidden');
-  document.getElementById('btn-photo-continue').disabled = true;
-  userPhoto = null;
-}
-
-function uploadPhoto(e) {
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    userPhoto = ev.target.result;
-    document.getElementById('photo-preview').src = userPhoto;
-    document.getElementById('photo-preview').classList.remove('hidden');
-    document.getElementById('photo-video').classList.add('hidden');
-    document.getElementById('btn-capture').classList.add('hidden');
-    document.getElementById('btn-retake').classList.remove('hidden');
-    document.getElementById('btn-photo-continue').disabled = false;
-  };
-  reader.readAsDataURL(file);
-}
-
-function skipPhoto() {
-  userPhoto = SILHOUETTE_SVG;
-  continueToQuiz();
-}
-
-function continueToQuiz() {
-  if(photoStream) {
-    photoStream.getTracks().forEach(t => t.stop());
-    photoStream = null;
-  }
-  const mod = globalModules.find(m => m.id === activeModuleId);
   document.getElementById('instr-topic').textContent = mod.title;
   document.getElementById('instr-count').textContent = 'Total Questions: ' + mod.questions.length;
   showScreen('screen-instructions');
@@ -430,6 +358,9 @@ function shuffleOptions(question) {
   return { shuffledOpts: opts, newCorrectIndex };
 }
 
+let proctorPhotos = [];
+let proctorInterval = null;
+
 function startQuiz() {
   const mod = globalModules.find(m => m.id === activeModuleId);
   originalQueue = shuffleArray([...mod.questions]);
@@ -439,9 +370,39 @@ function startQuiz() {
   correctScore = 0;
   userAnswers = [];
   activeQueue = originalQueue;
+  proctorPhotos = [];
   
   showScreen('screen-exam');
   renderQuestion();
+  
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      photoStream = stream;
+      const video = document.getElementById('proctor-video');
+      if (video) video.srcObject = stream;
+      
+      let captures = 0;
+      proctorInterval = setInterval(() => {
+        if (captures >= 3 || !photoStream) {
+          clearInterval(proctorInterval);
+          return;
+        }
+        captureProctorPhoto();
+        captures++;
+      }, 10000);
+    })
+    .catch(() => {
+      showToast('Camera access denied. Proctoring disabled.', 'error');
+    });
+}
+
+function captureProctorPhoto() {
+  const video = document.getElementById('proctor-video');
+  if(!video || !video.videoWidth) return;
+  const canvas = document.createElement('canvas');
+  canvas.width = 300; canvas.height = 225;
+  canvas.getContext('2d').drawImage(video, 0, 0, 300, 225);
+  proctorPhotos.push(canvas.toDataURL('image/jpeg', 0.6));
 }
 
 function renderQuestion() {
@@ -543,6 +504,12 @@ function showRetryTransition() {
 }
 
 function finishExam() {
+  if (photoStream) {
+    photoStream.getTracks().forEach(t => t.stop());
+    photoStream = null;
+  }
+  if (proctorInterval) clearInterval(proctorInterval);
+
   const total = originalQueue.length;
   const percentage = Math.round((correctScore / total) * 100);
   const pass = percentage >= PASS_SCORE;
@@ -553,8 +520,8 @@ function finishExam() {
   if (pass) {
     prog.completed = true;
     prog.score = Math.max(prog.score || 0, percentage);
-    prog.certPhoto = userPhoto || SILHOUETTE_SVG;
     prog.certDate = new Date().toISOString();
+    prog.proctorPhotos = proctorPhotos;
     
     // Unlock Next Module logic
     const nextMod = globalModules.find(m => m.id === activeModuleId + 1);
@@ -606,8 +573,6 @@ function viewCertificate(modId) {
   const d = new Date(p.certDate);
   const dateStr = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
   document.getElementById('cert-date').textContent = `Issued on: ${dateStr}`;
-  
-  document.getElementById('cert-user-photo').src = p.certPhoto || SILHOUETTE_SVG;
   
   showScreen('screen-certificate');
 }
